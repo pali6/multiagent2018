@@ -1,5 +1,5 @@
-import bc.*;
+import java.util.LinkedList;
 
-class Path {
+class Path extends LinkedList<NavPoint> {
 
 }
