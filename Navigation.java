@@ -1,4 +1,5 @@
 import bc.*;
+
 import java.util.*;
 
 public class Navigation {
@@ -65,19 +66,22 @@ public class Navigation {
         return reconstructPath(cameFrom, goal);
     }
 
-    public Direction getDirection(Path path, MapLocation mapLocation) throws Exception {
+    public Direction getDirection(Path path, MapLocation mapLocation) {
         NavPoint nextNavPoint = path.peek();
+        if(nextNavPoint == null){
+            return Direction.Center;
+        }
         for (int i = -1; i < 2; i++) {
             for (int j = -1; j < 2; j++) {
                 int nx = mapLocation.getX() + i;
                 int ny = mapLocation.getY() + j;
                 if (nextNavPoint.equals(new NavPoint(nx, ny))) {
                     path.poll();
-                    return getDirectionFromCoords(nx,ny);
+                    return getDirectionFromCoords(i, j);
                 }
             }
         }
-        throw new Exception("Agent is too far away from intended path.");
+        return Direction.Center;
     }
 
     private boolean isLocationPassable(int x, int y) {
@@ -110,31 +114,32 @@ public class Navigation {
     }
 
     private Direction getDirectionFromCoords(int x, int y) {
+        System.out.println(x + " x " + y);
         switch (x) {
             case -1:
                 switch (y) {
                     case -1:
-                        return Direction.Northwest;
+                        return Direction.Southwest;
                     case 0:
-                        return Direction.North;
+                        return Direction.West;
                     case 1:
-                        return Direction.Northeast;
+                        return Direction.Northwest;
                 }
             case 0:
                 switch (y) {
                     case -1:
-                        return Direction.West;
+                        return Direction.South;
                     case 1:
-                        return Direction.East;
+                        return Direction.North;
                 }
             case 1:
                 switch (y) {
                     case -1:
-                        return Direction.Southwest;
-                    case 0:
-                        return Direction.South;
-                    case 1:
                         return Direction.Southeast;
+                    case 0:
+                        return Direction.East;
+                    case 1:
+                        return Direction.Northeast;
                 }
         }
         return null;
@@ -152,7 +157,6 @@ public class Navigation {
             stack.push(current);
             current = cameFrom.get(current);
         }
-        stack.push(current);
 
         Path result = new Path();
         while (!stack.isEmpty()) {
