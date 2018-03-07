@@ -102,8 +102,7 @@ public class Navigation {
         }
         reusableMapLocation.setX(x);
         reusableMapLocation.setY(y);
-        Unit unit = gc.senseUnitAtLocation(reusableMapLocation);
-        return unit == null && planetMap.isPassableTerrainAt(reusableMapLocation) != 0;
+        return !gc.hasUnitAtLocation(reusableMapLocation) && planetMap.isPassableTerrainAt(reusableMapLocation) != 0;
     }
 
     private List<NavPoint> getAdjacentNavPoints(NavPoint navPoint) {
