@@ -9,7 +9,14 @@ class FactoryAgent extends UnitAgent {
 
     }
 
-    public void doTurn() {
+    public boolean produceRobot(UnitType type) {
+        if(!central.gc.canProduceRobot(id, type))
+            return false;
+        central.gc.produceRobot(id, type);
+        return true;
+    }
 
+    public void doTurn() {
+        //produceRobot(central.neededRobotType());
     }
 }

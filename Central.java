@@ -135,7 +135,8 @@ class Central {
             distances[entry.x][entry.y] = entry.distance;
             for(int dx = entry.x - 1; dx <= entry.x + 1; dx++)
                 for(int dy = entry.y - 1; dy <= entry.y + 1; dy++){
-                    if(dx < 0 || dy < 0 || dx >= width || dy >= height || (dx == entry.x && dy == entry.y) || !map[dx][dy].passable)
+                    if(dx < 0 || dy < 0 || dx >= width || dy >= height || (dx == entry.x && dy == entry.y) || !map[dx][dy].passable ||
+                            gc.hasUnitAtLocation(new MapLocation(gc.planet(), dx, dy)))
                         continue;
                     double dangerousness = -map[entry.x][entry.y].teamControl;
                     if(dangerousness < 0)
