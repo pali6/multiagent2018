@@ -76,11 +76,11 @@ class Central {
     }
 
     public MapLocation findExactResources(MapLocation me) {
-        return findResourcesInternal(me, 2.0, 0.5, 0.3, 0.0, true);
+        return findResourcesInternal(me, 2.0, 1.0, 0.3, 0.0, true);
     }
 
     public MapLocation findResources(MapLocation me) {
-        return findResourcesInternal(me, 1.0, 0.5, 1.0, 1.0, false);
+        return findResourcesInternal(me, 1.0, 1.0, 1.0, 1.0, false);
     }
 
     public MapLocation findResourcesInternal(MapLocation me, double amountPriority, double nearPriority,
@@ -118,7 +118,7 @@ class Central {
         q.add(new Entry(0, me.getX(), me.getY()));
         while(!q.isEmpty()) {
             Entry entry = q.poll();
-            if(entry.distance >=  distances[entry.x][entry.y])
+            if(distances[entry.x][entry.y] != -1 && entry.distance >=  distances[entry.x][entry.y])
                 continue;
             distances[entry.x][entry.y] = entry.distance;
             for(int dx = entry.x - 1; dx <= entry.x + 1; dx++)
@@ -129,7 +129,7 @@ class Central {
                     double dangerousness = -map[entry.x][entry.y].teamControl;
                     if(dangerousness < 0)
                         dangerousness = 0;
-                    double neighDist = entry.distance + dangerousness * safetyPriority;
+                    double neighDist = entry.distance + 1 + dangerousness * safetyPriority;
                     q.add(new Entry(neighDist, dx, dy));
                 }
         }
@@ -138,7 +138,7 @@ class Central {
         int bestX = 0, bestY = 0;
         for(int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
-                localValuation[x][y] = localValuation[x][y] * (1 - nearPriority) + distances[x][y] * nearPriority;
+                localValuation[x][y] = localValuation[x][y] - distances[x][y] * nearPriority;
                 MapLocation loc = new MapLocation(gc.planet(), x, y);
                 if (needKarbonite) {
                     if (!gc.canSenseLocation(loc))
@@ -151,12 +151,12 @@ class Central {
                     bestX = x;
                     bestY = y;
                 }
-                //System.out.printf("%5.2f ", 1.0 + localValuation[x][y]);
+                System.out.printf("%5.2f ", 1.0 + localValuation[x][y]);
             }
-            //System.out.print("\n");
+            System.out.print("\n");
         }
 
-        //System.out.printf("%d %d: %d %d\n", me.getX(), me.getY(), bestX, bestY);
+        System.out.printf("%d %d: %d %d\n", me.getX(), me.getY(), bestX, bestY);
         valuationPenalty[bestX][bestY] += 10.0;
         return new MapLocation(gc.planet(), bestX, bestY);
     }
@@ -292,6 +292,11 @@ class Central {
         if(gc.planet() != Planet.Earth) { // Mars placeholder
             while(true)
                 gc.nextTurn();
+        }
+        for(int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++)
+                System.out.printf(" %3d", gc.startingMap(gc.planet()).initialKarboniteAt(new MapLocation(gc.planet(), x, y)));
+            System.out.printf("\n");
         }
         while(true)
         {
