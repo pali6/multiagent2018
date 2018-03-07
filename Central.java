@@ -5,6 +5,7 @@ class Central {
     public GameController gc;
     HashMap<Integer, UnitAgent> unitAgents;
     HashMap<UnitType, Integer> numberOfUnits;
+    Navigation navigation;
     int turnNumber = 0;
 
     class Tile {
@@ -23,6 +24,7 @@ class Central {
         gc = new GameController();
         unitAgents = new HashMap<>();
         numberOfUnits = new HashMap<>();
+        navigation = new Navigation(gc, gc.planet());
 
         PlanetMap planetMap = gc.startingMap(gc.planet());
         height = (int) planetMap.getHeight();
@@ -57,12 +59,7 @@ class Central {
     }
 
     public Path findPath(MapLocation from, MapLocation to) {
-        return new Path();
-    }
-
-    public Direction nextStep(Path path, MapLocation me) {
-        // placeholder
-        return Direction.West;
+        return navigation.findPath(from, to);
     }
 
     public MapLocation findResources(MapLocation me) {
