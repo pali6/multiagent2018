@@ -1,5 +1,7 @@
 import bc.*;
 
+import java.util.Map;
+
 class WorkerAgent extends UnitAgent {
     	Occupation occupation;
     	//MapLocation worker_location;
@@ -32,7 +34,7 @@ class WorkerAgent extends UnitAgent {
 				//long res = central.gc.karboniteAt(karbonite_loc);
 				//System.out.println("Karbonite resources at loc: " + res);
 				Path p = central.findPath(my_loc, karbonite_loc);
-				System.out.printf("X:%dY:%d%n", karbonite_loc.getX(), karbonite_loc);
+				//System.out.printf("X:%dY:%d%n", karbonite_loc.getX(), karbonite_loc);
 				occupation = new Arriving(my_loc, id, karbonite_loc, new Harvesting(karbonite_loc, id, karbonite_loc), p);
 			}
 		}
@@ -41,6 +43,7 @@ class WorkerAgent extends UnitAgent {
 			//return true;
 		} catch (Exception e) {
 			System.out.println("Error: " + e.toString());
+			e.printStackTrace();
 			//return false;
 		}
     }
@@ -52,6 +55,7 @@ class WorkerAgent extends UnitAgent {
 			//return true;
 		} catch (Exception e) {
 			System.out.println("Error: " + e.toString());
+			e.printStackTrace();
 			//return false;
 		}
     }
@@ -124,10 +128,10 @@ class Arriving extends Occupation {
 				}
 			}
 		else if (direction == null) {
-			central.nextStep(path,worker_location);
+			direction = central.nextStep(path,worker_location);
 		} 
 		
-		if (central.gc.canMove(worker_id, direction)) {
+		if (direction != null && central.gc.canMove(worker_id, direction)) {
 			//does not take heat into account -> takes map into account
 			return this;
 		} else {
@@ -322,6 +326,7 @@ class PlacingBlueprint extends Occupation {
 			return new Building(worker_location, worker_id, blueprint_id);
 		} catch (Exception e) {
 			System.out.println(e.toString());
+			e.printStackTrace();
 			//for some reason we could not blueprint
 			//we will just try in the next round for now
 			return this;
@@ -390,7 +395,9 @@ class Replicating extends Occupation {
 			Direction[] directions = Direction.values();
 		 	//find a feasable direction
 			for (int i=1; i<9; i++) {
-				if (central.gc.isOccupiable(worker_location.add(directions[i]))>0) {
+				MapLocation mapLocation = worker_location.add(directions[i]);
+				if (central.gc.startingMap(central.gc.planet()).onMap(mapLocation)
+						&& central.gc.isOccupiable(mapLocation)>0) {
 					direction = directions[i];
 					return this;
 				} 
