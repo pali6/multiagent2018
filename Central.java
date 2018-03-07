@@ -195,8 +195,9 @@ class Central {
                 unitAgents.put(unit.id(), createAgent(unit));
                 agent = unitAgents.get(unit.id());
             }
-            if(agent == null)
-                System.out.println("No agent for unit.");
+            if(agent == null) {
+                //System.out.println("No agent for unit.");
+            }
             else
                 process.call(agent);
         }

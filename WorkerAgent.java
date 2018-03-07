@@ -17,16 +17,16 @@ class WorkerAgent extends UnitAgent {
     	public void prepareTurn() {
     		long treshold = 100;
 		if (occupation instanceof Idle ) {
-			if (central == null) System.out.println("Central is null");
-			if (central.gc == null) System.out.println("gc is null");
+			//if (central == null) System.out.println("Central is null");
+			//if (central.gc == null) System.out.println("gc is null");
 			//if (central.gc.round() == null) System.out.println("round is null");
 			if (central.gc.round() == 1) {
 				occupation = new Replicating(central.gc.unit(id).location().mapLocation(), id);
-				System.out.println("replicating occupation created");
+				//System.out.println("replicating occupation created");
 			} else if (central.tmpKarbonite >= 60){
 				occupation = new Replicating(central.gc.unit(id).location().mapLocation(), id);
 				central.tmpKarbonite -= 60;
-				System.out.println("replicating occupation (2) created");
+				//System.out.println("replicating occupation (2) created");
 			} else if (central.tmpKarbonite < treshold) { //trashold can be changed
 				//go harvest
 				MapLocation my_loc = ((Idle)occupation).getLocation();
@@ -142,6 +142,9 @@ class Arriving extends Occupation {
 	}
 
 	public Occupation doOccupation(Central central) {
+		if(direction == null){
+			return this;
+		}
 		if (central.gc.canMove(worker_id, direction)) {
 			//if mapLocation in direction is empy, we can try and make a move, if heat of worker is low enough;
 			
@@ -149,7 +152,7 @@ class Arriving extends Occupation {
 			if (goal == null) {
 				//just doing one step
 				if (central.gc.isMoveReady(worker_id)) {
-					System.out.println("Doing a step - with no goal");
+					//System.out.println("Doing a step - with no goal");
 					central.gc.moveRobot(worker_id, direction);
 					worker_location = worker_location.add(direction);
 					return purpose;
@@ -158,17 +161,17 @@ class Arriving extends Occupation {
 			
 			//making a move, if possible
 			if (central.gc.isMoveReady(worker_id)) {
-				System.out.println("Doing a step - with goal");
+				//System.out.println("Doing a step - with goal");
 				central.gc.moveRobot(worker_id, direction);
 				worker_location = worker_location.add(direction);
 				if (worker_location.equals(goal)) {
-					System.out.println("Reached goal");
+					//System.out.println("Reached goal");
 					//goal is reached, next step is to do what we came do to
 					//not sure if this acctualy works - depends on how MapLocation is implemented
 					return purpose;
 				} else {
-					System.out.println("goal not reached yet");
-					System.out.printf("current loc: X:%d Y:%d", worker_location.getX(), worker_location.getY());
+					//System.out.println("goal not reached yet");
+					//System.out.printf("current loc: X:%d Y:%d", worker_location.getX(), worker_location.getY());
 					//if goal is yet to be reached, next task is still moving, changing direction (roker_location was updated)
 					direction = central.nextStep(path, worker_location);
 					return this;
@@ -179,7 +182,7 @@ class Arriving extends Occupation {
 			}
 		} else {
 			//waiting another turn to get path freed
-			System.out.println("Something is in the way");
+			//System.out.println("Something is in the way");
 			return this;
 		}	
 
@@ -223,6 +226,10 @@ class Harvesting extends Occupation {
 	}
 
 	public Occupation doOccupation(Central central) {
+		// TODO do some loop here to wait a few turns
+		if(direction == null) {
+			return this;
+		}
 		if (central.gc.canHarvest(worker_id, direction)) {
 			//no action this round, if spot has karbonite
 			central.gc.harvest(worker_id, direction);
@@ -253,13 +260,13 @@ class Idle extends Occupation {
 		//newTask.processOccupation();
 		//return newTask;
 		//best not to call
-		System.out.println("CALLING (process) ON IDLE!!!");
+		//System.out.println("CALLING (process) ON IDLE!!!");
 		return this;
 	}
 
 	public Occupation doOccupation(Central central) {
 		//should not be called EVER
-		System.out.println("CALLING (do) ON IDLE!!!");
+		//System.out.println("CALLING (do) ON IDLE!!!");
 		return this;
 	}
 	
@@ -425,7 +432,7 @@ class Replicating extends Occupation {
 	
 	public Occupation doOccupation(Central central) {
 		if (central.gc.canReplicate(worker_id, direction)) {
-			System.out.println("Worker replicated");
+			//System.out.println("Worker replicated");
 			//takes into account karbonite, heat, location
 			central.gc.replicate(worker_id, direction);
 			return new Idle(worker_location, worker_id);

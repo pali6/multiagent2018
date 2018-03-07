@@ -125,7 +125,7 @@ public class Navigation {
     }
 
     private Direction getDirectionFromCoords(int x, int y) {
-        System.out.println(x + " x " + y);
+        //System.out.println(x + " x " + y);
         switch (x) {
             case -1:
                 switch (y) {
