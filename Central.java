@@ -9,6 +9,10 @@ class Central {
     int turnNumber = 0;
     long tmpKarbonite; //added for preparing turn(to get the karbonite that is ment to be spent in this turn, avoiding running aout of it during turn preparation
 
+    double[][] valuation;
+    double[][] nearbyValuation;
+    double[][] valuationPenalty;
+
     class Tile {
         boolean passable;
         double enemyPresence;
@@ -32,6 +36,9 @@ class Central {
         height = (int) planetMap.getHeight();
         width = (int) planetMap.getWidth();
         map = new Tile[width][height];
+        valuation = new double[width][height];
+        nearbyValuation = new double[width][height];
+        valuationPenalty = new double[width][height];
         for(int x = 0; x < width; x++) {
             for (int y = 0; y < height; y++) {
                 map[x][y] = new Tile();
@@ -79,34 +86,14 @@ class Central {
     public MapLocation findResourcesInternal(MapLocation me, double amountPriority, double nearPriority,
                                              double safetyPriority, double nearbyAmountPriority, boolean needKarbonite) {
 
-        double[][] valuation = new double[width][height];
         double[][] distances = new double[width][height];
+        double[][] localValuation = new double[width][height];
         for(int x = 0; x < width; x++) {
             for(int y = 0; y < height; y++) {
-                double karbonite;
-                if(gc.canSenseLocation(new MapLocation(gc.planet(), x, y)))
-                    karbonite = gc.karboniteAt(new MapLocation(gc.planet(), x, y));
-                else {
-                    karbonite = map[x][y].lastKarbonite;
-                    if(map[x][y].teamControl < -0.1) // no idea what value to put here
-                        karbonite *= Math.pow(0.99, map[x][y].turnsSinceSeen);
-                }
-                valuation[x][y] += karbonite * amountPriority;
                 distances[x][y] = -1;
-            }
-        }
-
-        for(int i = 0; i < 5; i++) {
-            for (int x = 0; x < width; x++) {
-                for (int y = 0; y < height; y++) {
-                    for (int dx = x - 1; dx <= x + 1; dx++) {
-                        for (int dy = y - 1; dy <= y + 1; dy++) {
-                            if ((dx == x && dy == y) || dx < 0 || dy < 0 || dx >= width || dy >= height || !map[dx][dy].passable)
-                                continue;
-                            valuation[dx][dy] += 0.05 * valuation[x][y] * nearbyAmountPriority;
-                        }
-                    }
-                }
+                localValuation[x][y] = amountPriority * valuation[x][y]
+                        + nearbyAmountPriority * nearbyValuation[x][y]
+                        - valuationPenalty[x][y];
             }
         }
 
@@ -150,22 +137,55 @@ class Central {
         int bestX = 0, bestY = 0;
         for(int x = 0; x < width; x++)
             for(int y = 0; y < height; y++) {
-                valuation[x][y] = valuation[x][y] * (1 - nearPriority) + distances[x][y] * nearPriority;
+                localValuation[x][y] = localValuation[x][y] * (1 - nearPriority) + distances[x][y] * nearPriority;
                 MapLocation loc = new MapLocation(gc.planet(), x, y);
                 if(needKarbonite) {
                     if (!gc.canSenseLocation(loc))
-                        valuation[x][y] = 0;
+                        localValuation[x][y] = 0;
                     else if(gc.karboniteAt(loc) == 0)
-                        valuation[x][y] = 0;
+                        localValuation[x][y] = 0;
                 }
-                if(valuation[x][y] > bestValue) {
-                    bestValue = valuation[x][y];
+                if(localValuation[x][y] > bestValue) {
+                    bestValue = localValuation[x][y];
                     bestX = x;
                     bestY = y;
                 }
             }
 
+        valuationPenalty[bestX][bestY] += 10.0;
         return new MapLocation(gc.planet(), bestX, bestY);
+    }
+
+    void resolveValuation() {
+        for(int x = 0; x < width; x++) {
+            for(int y = 0; y < height; y++) {
+                double karbonite;
+                if(gc.canSenseLocation(new MapLocation(gc.planet(), x, y)))
+                    karbonite = gc.karboniteAt(new MapLocation(gc.planet(), x, y));
+                else {
+                    karbonite = map[x][y].lastKarbonite;
+                    if(map[x][y].teamControl < -0.1) // no idea what value to put here
+                        karbonite *= Math.pow(0.99, map[x][y].turnsSinceSeen);
+                }
+                valuation[x][y] = karbonite;
+                nearbyValuation[x][y] = karbonite;
+                valuationPenalty[x][y] *= 0.98;
+            }
+        }
+
+        for(int i = 0; i < 5; i++) {
+            for (int x = 0; x < width; x++) {
+                for (int y = 0; y < height; y++) {
+                    for (int dx = x - 1; dx <= x + 1; dx++) {
+                        for (int dy = y - 1; dy <= y + 1; dy++) {
+                            if ((dx == x && dy == y) || dx < 0 || dy < 0 || dx >= width || dy >= height || !map[dx][dy].passable)
+                                continue;
+                            nearbyValuation[dx][dy] += 0.05 * nearbyValuation[x][y];
+                        }
+                    }
+                }
+            }
+        }
     }
 
     public UnitAgent createAgent(Unit unit) {
@@ -198,8 +218,14 @@ class Central {
             if(agent == null) {
                 //System.out.println("No agent for unit.");
             }
-            else
-                process.call(agent);
+            else {
+                try {
+                    process.call(agent);
+                }
+                catch(Exception e) {
+                    e.printStackTrace();
+                }
+            }
         }
     }
 
@@ -247,6 +273,8 @@ class Central {
 
     public void doTurn() {
         tmpKarbonite = gc.karbonite(); //refreshing karbonite at each turn;
+        if(turnNumber % 20 == 0)
+            resolveValuation();
         updatePresences();
         resetStatistics();
         applyToUnits((agent) -> { doStatistics(agent); });
