@@ -1,4 +1,5 @@
 import bc.MapLocation;
+import bc.Planet;
 
 public class NavPoint {
 
@@ -13,6 +14,11 @@ public class NavPoint {
 
     public static NavPoint fromMapLocation(MapLocation mapLocation) {
         return new NavPoint(mapLocation.getX(), mapLocation.getY());
+    }
+
+
+    public MapLocation toMapLocation(Planet planet){
+        return new MapLocation(planet, x, y);
     }
 
     @Override

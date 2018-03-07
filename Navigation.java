@@ -4,13 +4,12 @@ import java.util.*;
 
 public class Navigation {
 
-    public final Planet planet;
-
+    private GameController gc;
     private MapLocation reusableMapLocation;
     private PlanetMap planetMap;
 
     public Navigation(GameController gc, Planet planet) {
-        this.planet = planet;
+        this.gc = gc;
         this.planetMap = gc.startingMap(planet);
         reusableMapLocation = new MapLocation(planet, 0, 0);
     }
@@ -67,21 +66,34 @@ public class Navigation {
     }
 
     public Direction getDirection(Path path, MapLocation mapLocation) {
-        NavPoint nextNavPoint = path.peek();
-        if(nextNavPoint == null){
+        NavPoint nextNavPoint = path.queue.peek();
+        if (nextNavPoint == null) {
             return Direction.Center;
         }
+        boolean pathBlocked = false;
         for (int i = -1; i < 2; i++) {
             for (int j = -1; j < 2; j++) {
                 int nx = mapLocation.getX() + i;
                 int ny = mapLocation.getY() + j;
                 if (nextNavPoint.equals(new NavPoint(nx, ny))) {
-                    path.poll();
+                    if (!isLocationPassable(nx, ny)) {
+                        break;
+                    }
+                    path.queue.poll();
                     return getDirectionFromCoords(i, j);
                 }
             }
         }
-        return Direction.Center;
+
+        // if next direction couldn't be determined
+        // (either the path is blocked or the unit si too far away)
+        // we find new path
+        Path newPath = findPath(mapLocation, path.queue.getLast().toMapLocation(gc.planet()));
+        if(newPath == null){
+            return null;
+        }
+        path.queue = newPath.queue;
+        return getDirection(path, mapLocation);
     }
 
     private boolean isLocationPassable(int x, int y) {
@@ -90,8 +102,8 @@ public class Navigation {
         }
         reusableMapLocation.setX(x);
         reusableMapLocation.setY(y);
-        return planetMap.isPassableTerrainAt(reusableMapLocation) != 0;
-
+        Unit unit = gc.senseUnitAtLocation(reusableMapLocation);
+        return unit == null && planetMap.isPassableTerrainAt(reusableMapLocation) != 0;
     }
 
     private List<NavPoint> getAdjacentNavPoints(NavPoint navPoint) {
@@ -158,10 +170,10 @@ public class Navigation {
             current = cameFrom.get(current);
         }
 
-        Path result = new Path();
+        LinkedList<NavPoint> queue = new LinkedList<>();
         while (!stack.isEmpty()) {
-            result.add(stack.pop());
+            queue.add(stack.pop());
         }
-        return result;
+        return new Path(queue);
     }
 }
