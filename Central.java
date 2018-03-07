@@ -7,6 +7,7 @@ class Central {
     HashMap<UnitType, Integer> numberOfUnits;
     Navigation navigation;
     int turnNumber = 0;
+    long tmpKarbonite; //added for preparing turn(to get the karbonite that is ment to be spent in this turn, avoiding running aout of it during turn preparation
 
     class Tile {
         boolean passable;
@@ -25,6 +26,7 @@ class Central {
         unitAgents = new HashMap<>();
         numberOfUnits = new HashMap<>();
         navigation = new Navigation(gc, gc.planet());
+        tmpKarbonite = gc.karbonite(); // should be 100 at the start
 
         PlanetMap planetMap = gc.startingMap(gc.planet());
         height = (int) planetMap.getHeight();
@@ -242,6 +244,7 @@ class Central {
     }
 
     public void doTurn() {
+        tmpKarbonite = gc.karbonite(); //refreshing karbonite at each turn;
         updatePresences();
         resetStatistics();
         applyToUnits((agent) -> { doStatistics(agent); });
