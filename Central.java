@@ -67,14 +67,15 @@ class Central {
     }
 
     public MapLocation findExactResources(MapLocation me) {
-
+        return findResourcesInternal(me, 2.0, 0.5, 0.3, 0.0, true);
     }
 
     public MapLocation findResources(MapLocation me) {
-        double amountPriority = 1.0;
-        double nearPriority = 0.5;
-        double safetyPriority = 1.0;
-        double nearbyAmountPriority = 1.0;
+        return findResourcesInternal(me, 1.0, 0.5, 1.0, 1.0, false);
+    }
+
+    public MapLocation findResourcesInternal(MapLocation me, double amountPriority, double nearPriority,
+                                             double safetyPriority, double nearbyAmountPriority, boolean needKarbonite) {
 
         double[][] valuation = new double[width][height];
         double[][] distances = new double[width][height];
@@ -147,6 +148,13 @@ class Central {
         for(int x = 0; x < width; x++)
             for(int y = 0; y < height; y++) {
                 valuation[x][y] = valuation[x][y] * (1 - nearPriority) + distances[x][y] * nearPriority;
+                MapLocation loc = new MapLocation(gc.planet(), x, y);
+                if(needKarbonite) {
+                    if (!gc.canSenseLocation(loc))
+                        valuation[x][y] = 0;
+                    else if(gc.karboniteAt(loc) == 0)
+                        valuation[x][y] = 0;
+                }
                 if(valuation[x][y] > bestValue) {
                     bestValue = valuation[x][y];
                     bestX = x;
