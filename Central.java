@@ -92,8 +92,9 @@ class Central {
             for(int y = 0; y < height; y++) {
                 distances[x][y] = -1;
                 localValuation[x][y] = amountPriority * valuation[x][y]
-                        + nearbyAmountPriority * nearbyValuation[x][y]
-                        - valuationPenalty[x][y];
+                        + nearbyAmountPriority * nearbyValuation[x][y];
+                if(!needKarbonite)
+                    localValuation[x][y] -= valuationPenalty[x][y];
             }
         }
 
@@ -135,23 +136,27 @@ class Central {
 
         double bestValue = 0;
         int bestX = 0, bestY = 0;
-        for(int x = 0; x < width; x++)
-            for(int y = 0; y < height; y++) {
+        for(int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
                 localValuation[x][y] = localValuation[x][y] * (1 - nearPriority) + distances[x][y] * nearPriority;
                 MapLocation loc = new MapLocation(gc.planet(), x, y);
-                if(needKarbonite) {
+                if (needKarbonite) {
                     if (!gc.canSenseLocation(loc))
                         localValuation[x][y] = 0;
-                    else if(gc.karboniteAt(loc) == 0)
+                    else if (gc.karboniteAt(loc) == 0)
                         localValuation[x][y] = 0;
                 }
-                if(localValuation[x][y] > bestValue) {
+                if (localValuation[x][y] > bestValue) {
                     bestValue = localValuation[x][y];
                     bestX = x;
                     bestY = y;
                 }
+                //System.out.printf("%5.2f ", 1.0 + localValuation[x][y]);
             }
+            //System.out.print("\n");
+        }
 
+        //System.out.printf("%d %d: %d %d\n", me.getX(), me.getY(), bestX, bestY);
         valuationPenalty[bestX][bestY] += 10.0;
         return new MapLocation(gc.planet(), bestX, bestY);
     }
