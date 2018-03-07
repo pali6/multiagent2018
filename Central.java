@@ -62,10 +62,19 @@ class Central {
         return navigation.findPath(from, to);
     }
 
+    public Direction nextStep(Path path, MapLocation me) {
+        return navigation.getDirection(path, me);
+    }
+
+    public MapLocation findExactResources(MapLocation me) {
+
+    }
+
     public MapLocation findResources(MapLocation me) {
         double amountPriority = 1.0;
         double nearPriority = 0.5;
         double safetyPriority = 1.0;
+        double nearbyAmountPriority = 1.0;
 
         double[][] valuation = new double[width][height];
         double[][] distances = new double[width][height];
@@ -91,7 +100,7 @@ class Central {
                         for (int dy = y - 1; dy <= y + 1; dy++) {
                             if ((dx == x && dy == y) || dx < 0 || dy < 0 || dx >= width || dy >= height || !map[dx][dy].passable)
                                 continue;
-                            valuation[dx][dy] += 0.05 * valuation[x][y];
+                            valuation[dx][dy] += 0.05 * valuation[x][y] * nearbyAmountPriority;
                         }
                     }
                 }
