@@ -268,11 +268,11 @@ class Harvesting extends Occupation {
 		}
 		
 		if (central.gc.karboniteAt(locationOfKarbonite) <= 0) {
-			return new Idle(worker_location, worker_id);
+			//return new Idle(worker_location, worker_id);
 			/*if (!central.needResources()) {
 				System.out.println("no need for resources rn");
 				return new Idle(worker_location, worker_id);
-			}
+			}*/   //TODO DECINE ON STRATEGY!!
 			MapLocation tmp = worker_location;
 			worker_location = null;
 			System.out.println("no karbonite left, finding new resources");
@@ -289,7 +289,7 @@ class Harvesting extends Occupation {
 				System.out.println("new_loc adjacent, gonna harvest");
 				direction = worker_location.directionTo(locationOfKarbonite);
 				return this;
-			}*/
+			}
 		} else {
 			System.out.println("everything fine, gonna harvest");
 			//still harvesting in next round
@@ -305,12 +305,13 @@ class Harvesting extends Occupation {
 			System.out.println("harvesting");
 			central.gc.harvest(worker_id, direction);
 			if (central.gc.karboniteAt(locationOfKarbonite) <= 0) {
-				return new Idle(worker_location, worker_id);
-				/*System.out.println("harvested all resources, tying to get loc of new karbonite");
+				//TODO DECINE ON STRATEGY!!
+				//return new Idle(worker_location, worker_id);
+				System.out.println("harvested all resources, tying to get loc of new karbonite");
 				//if karbonite just went out
 				MapLocation new_loc = central.findExactResources(worker_location);
 				locationOfKarbonite = new_loc;
-				return this;*/
+				return this;
 				//this can happen due to some other worker harvesting the same spot or we just exhausted the spot
 			} else {
 				//continue harvesting the same spot
