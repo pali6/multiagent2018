@@ -9,7 +9,7 @@ class Central {
     Navigation navigation;
     int turnNumber = 0;
     long tmpKarbonite; //added for preparing turn(to get the karbonite that is ment to be spent in this turn, avoiding running aout of it during turn preparation
-    int mainWorker;
+    int mainWorker; //added for setting up the base of our team -> main worker will allways be in the base
 
     class Tile {
         boolean passable;
@@ -62,12 +62,12 @@ class Central {
         gc.queueResearch(UnitType.Mage);
     }
     
-    public boolean needResources() {
+    public boolean needResources() { //open for changing
     		if (tmpKarbonite < 100) return true;
     		return false;
     }
     
-    public boolean needWorkers() {
+    public boolean needWorkers() { //open for changing
     		int num_of_workers = numberOfUnits.get(UnitType.Worker);
     		if (num_of_workers < 20 && (new Random()).nextInt(3) == 0) return true;
     		return false;
