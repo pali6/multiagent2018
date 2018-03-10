@@ -1,6 +1,7 @@
 import bc.*;
 import java.util.*;
 
+
 class Central {
     public GameController gc;
     HashMap<Integer, UnitAgent> unitAgents;
@@ -8,6 +9,7 @@ class Central {
     Navigation navigation;
     int turnNumber = 0;
     long tmpKarbonite; //added for preparing turn(to get the karbonite that is ment to be spent in this turn, avoiding running aout of it during turn preparation
+    int mainWorker;
 
     class Tile {
         boolean passable;
@@ -59,6 +61,18 @@ class Central {
         gc.queueResearch(UnitType.Mage);
         gc.queueResearch(UnitType.Mage);
     }
+    
+    public boolean needResources() {
+    		if (tmpKarbonite < 100) return true;
+    		return false;
+    }
+    
+    public boolean needWorkers() {
+    		int num_of_workers = numberOfUnits.get(UnitType.Worker);
+    		if (num_of_workers < 20 && (new Random()).nextInt(3) == 0) return true;
+    		return false;
+    }
+    
 
     public Path findPath(MapLocation from, MapLocation to) {
         return navigation.findPath(from, to);
