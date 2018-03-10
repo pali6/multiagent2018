@@ -12,30 +12,50 @@ class WorkerAgent extends UnitAgent {
     	    this.type = central.gc.unit(id).unitType();
     	    //change when dealing with workers that are not on earth
     	    occupation = new Idle(worker_location, id);
+    	    String filename = (Integer.toString(id)).concat(".txt");
     	}
 
     	public void prepareTurn() {
-    		long treshold = 100;
+    		long treshold = 500;
 		if (occupation instanceof Idle ) {
-			if (central == null) System.out.println("Central is null");
-			if (central.gc == null) System.out.println("gc is null");
-			//if (central.gc.round() == null) System.out.println("round is null");
-			if (central.gc.round() == 1) {
-				occupation = new Replicating(central.gc.unit(id).location().mapLocation(), id);
-				System.out.println("replicating occupation created");
-			} else if (central.tmpKarbonite >= 60){
-				occupation = new Replicating(central.gc.unit(id).location().mapLocation(), id);
-				central.tmpKarbonite -= 60;
-				System.out.println("replicating occupation (2) created");
-			} else if (central.tmpKarbonite < treshold) { //trashold can be changed
-				//go harvest
-				MapLocation my_loc = ((Idle)occupation).getLocation();
-				MapLocation karbonite_loc = central.findResources(my_loc);
-				//long res = central.gc.karboniteAt(karbonite_loc);
-				//System.out.println("Karbonite resources at loc: " + res);
-				Path p = central.findPath(my_loc, karbonite_loc);
-				//System.out.printf("X:%dY:%d%n", karbonite_loc.getX(), karbonite_loc);
-				occupation = new Arriving(my_loc, id, karbonite_loc, new Harvesting(karbonite_loc, id, karbonite_loc), p);
+			if (!((Idle)occupation).isWaiting()) {
+				
+				
+				/*if (central == null) System.out.println("Central is null");
+				if (central.gc == null) System.out.println("gc is null");
+				//if (central.gc.round() == null) System.out.println("round is null");*/
+				if (central.gc.round() == 1) {
+					occupation = new Replicating(central.gc.unit(id).location().mapLocation(), id);
+					//System.out.println("replicating occupation created");
+				} else if (central.tmpKarbonite >= 60 && central.gc.round()<100){
+					occupation = new Replicating(central.gc.unit(id).location().mapLocation(), id);
+					central.tmpKarbonite -= 60;
+					//System.out.println("replicating occupation (2) created");
+				/*} else if (central.tmpKarbonite < treshold) { //trashold can be changed
+					//go harvest
+					MapLocation my_loc = ((Idle)occupation).getLocation();
+					MapLocation karbonite_loc = central.findResources(my_loc);
+					//long res = central.gc.karboniteAt(karbonite_loc);
+					//System.out.println("Karbonite resources at loc: " + res);
+					Path p = central.findPath(my_loc, karbonite_loc);
+					//System.out.printf("X:%dY:%d%n", karbonite_loc.getX(), karbonite_loc);
+					occupation = new Arriving(my_loc, id, karbonite_loc, new Harvesting(karbonite_loc, id, karbonite_loc), p);*/
+				} else if (/*ask central if we need factory or rocket built)*/central.gc.round() > 100) {
+					if (central.tmpKarbonite >= 200) {
+						central.tmpKarbonite -= 200;
+						MapLocation my_loc = ((Idle)occupation).getLocation();
+						occupation = new PlacingBlueprint(my_loc, id, UnitType.Factory);
+					}
+				} else {
+					//go harvest
+					MapLocation my_loc = ((Idle)occupation).getLocation();
+					MapLocation karbonite_loc = central.findResources(my_loc);
+					//long res = central.gc.karboniteAt(karbonite_loc);
+					//System.out.println("Karbonite resources at loc: " + res);
+					Path p = central.findPath(my_loc, karbonite_loc);
+					//System.out.printf("X:%dY:%d%n", karbonite_loc.getX(), karbonite_loc);
+					occupation = new Arriving(my_loc, id, karbonite_loc, new Harvesting(karbonite_loc, id, karbonite_loc), p);
+				}
 			}
 		}
 		try {	
@@ -115,6 +135,7 @@ class Arriving extends Occupation {
 	}
 
 	public Occupation processOccupation(Central central) {
+		if (path == null) direction = Direction.West;
 		//can move takes in account only map terrain
 		if (goal == null) {
 				//if only one step is necessary
@@ -135,15 +156,15 @@ class Arriving extends Occupation {
 			//does not take heat into account -> takes map into account
 			return this;
 		} else {
-			
+			return new Idle(worker_location, worker_id,1, this);
 			//TODO: handle unfeasible move
-			return this;
+			//if not path around is found wait a few turns, o/w assign new occupation
 		}
 	}
 
 	public Occupation doOccupation(Central central) {
 		if (central.gc.canMove(worker_id, direction)) {
-			//if mapLocation in direction is empy, we can try and make a move, if heat of worker is low enough;
+			//if mapLocation in direction is empty, we can try and make a move, if heat of worker is low enough;
 			
 	 		//isMoveReady takes heat into account
 			if (goal == null) {
@@ -167,8 +188,10 @@ class Arriving extends Occupation {
 					//not sure if this acctualy works - depends on how MapLocation is implemented
 					return purpose;
 				} else {
-					System.out.println("goal not reached yet");
-					System.out.printf("current loc: X:%d Y:%d", worker_location.getX(), worker_location.getY());
+					if (path == null) path = central.findPath(worker_location, goal); //trying to get a path from new position
+					System.out.println("ROUND: " + central.gc.round() + " goal not reached yet");
+					System.out.printf("current loc: X:%d Y:%d%n", worker_location.getX(), worker_location.getY());
+					System.out.printf("goal loc: X:%d Y:%d%n", goal.getX(), goal.getY());
 					//if goal is yet to be reached, next task is still moving, changing direction (roker_location was updated)
 					direction = central.nextStep(path, worker_location);
 					return this;
@@ -195,11 +218,11 @@ class Harvesting extends Occupation {
 	public Harvesting(MapLocation wl, int id,MapLocation karbonite) {
 		super(wl,id);
 		locationOfKarbonite = karbonite;
-		if (!worker_location.isAdjacentTo(locationOfKarbonite)) {
+		/*if (!worker_location.isAdjacentTo(locationOfKarbonite)) {
 			//throw new Exception e();
 		} else {
 			direction = worker_location.directionTo(locationOfKarbonite);
-		}
+		}*/
 	}
 	
 	public Harvesting(MapLocation wl, int id, Direction karbonite) {
@@ -212,9 +235,15 @@ class Harvesting extends Occupation {
 
 
 	public Occupation processOccupation(Central central) {
+		if (direction == null) {
+			direction = worker_location.directionTo(locationOfKarbonite);
+		}
 		if (central.gc.karboniteAt(locationOfKarbonite) <= 0) {
 			//no karbon here left, should get new task
-			return new Idle(worker_location, worker_id);
+			MapLocation new_loc = central.findExactResources(worker_location);
+			locationOfKarbonite = new_loc;
+			Path pth = central.findPath(worker_location, new_loc);
+			return new Arriving(worker_location, worker_id, new_loc, this, pth);
 		} else {
 			//still harvesting in next round
 			return this;
@@ -225,12 +254,16 @@ class Harvesting extends Occupation {
 	public Occupation doOccupation(Central central) {
 		if (central.gc.canHarvest(worker_id, direction)) {
 			//no action this round, if spot has karbonite
+			System.out.println("harvesting");
 			central.gc.harvest(worker_id, direction);
 
 		}
 		if (central.gc.karboniteAt(locationOfKarbonite) <= 0) {
+			MapLocation new_loc = central.findExactResources(worker_location);
+			locationOfKarbonite = new_loc;
+			Path pth = central.findPath(worker_location, new_loc);
+			return new Arriving(worker_location, worker_id, new_loc, this, pth);
 			//this can happen due to some other worker harvesting the same spot or we just exhausted the spot
-			return new Idle(worker_location, worker_id);
 		} else {
 			//continue harvesting the same spot
 			return this;
@@ -242,12 +275,27 @@ class Harvesting extends Occupation {
 
 
 class Idle extends Occupation {
+	int wait;
+	Occupation after_waiting;
 
 	public Idle(MapLocation wl, int id) {
 		super(wl,id);
 		//decide on occupation
+		after_waiting = null;
+		wait = 0;
 	}
+	
+	public Idle(MapLocation wl, int id, int w, Occupation o) {
+		super(wl, id);
+		wait = w;
+		after_waiting = o;
+	}
+	
 	public Occupation processOccupation(Central central) {
+		if (after_waiting != null) {
+			if (wait == 0) return after_waiting;
+			wait --;
+		}
 		//TODO: ask Central for another task
 		//Occupation newTask = Central.getWorkerTask(locationOfWorker);
 		//newTask.processOccupation();
@@ -265,6 +313,11 @@ class Idle extends Occupation {
 	
 	public MapLocation getLocation() {
 		return worker_location;
+	}
+	
+	public boolean isWaiting() {
+		if (after_waiting != null) return true;
+		return false;
 	}
 }
 
@@ -313,13 +366,25 @@ class PlacingBlueprint extends Occupation {
 
 	public Occupation doOccupation(Central central) {
 		if (central.gc.isOccupiable(worker_location.add(direction))>0) {
-			//could be, that before making turn something gets in the way
-			//we will just try waiting another round for now
-			return this;
+			Direction[] directions = Direction.values();
+	 		//find a feasable 
+			for (int i=1; i<9; i++) {
+				//canBlueprint takes into consideration Karbonite resources, heat, if rocket can be built
+				if (central.gc.canBlueprint(worker_id, structure, directions[i])) {
+					direction = directions[i];
+					break;
+				} 
+			}
+			if (central.gc.isOccupiable(worker_location.add(direction))>0) {
+				//could be, that before making turn something gets in the way
+				//we will just try waiting another round for now
+				return new Idle(worker_location, worker_id, 1, this);
+			}
 		}
 		try {
 			//maybe karbonite is too low
 			central.gc.blueprint(worker_id, structure, direction);
+			System.out.println("placing blueprint");
 			//I hope this will work!!
 			int blueprint_id = (central.gc.senseUnitAtLocation(worker_location.add(direction))).id();
 			//gets to build the blueprint BUT!! blueprint id is needed!! i hope bluprint is set up right away
@@ -361,6 +426,7 @@ class Building extends Occupation {
 
 	public Occupation doOccupation(Central central) {
 		if (central.gc.canBuild(worker_id, blueprint_id)) {
+			System.out.println("placing blueprint");
 			//throws exception if allready built
 			central.gc.build(worker_id, blueprint_id);
 			if ((central.gc.unit(blueprint_id)).health() >= (central.gc.unit(blueprint_id)).maxHealth()) {
