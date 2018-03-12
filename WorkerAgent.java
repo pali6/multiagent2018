@@ -5,27 +5,67 @@ import java.util.Map;
 class WorkerAgent extends UnitAgent {
     	Occupation occupation;
     	//MapLocation worker_location;
+    	boolean isMiner;
 
     	public WorkerAgent(int id, Central central) {
     	    super(id, central);
-    	    MapLocation worker_location = central.gc.unit(id).location().mapLocation();
     	    this.type = central.gc.unit(id).unitType();
     	    //change when dealing with workers that are not on earth
-    	    occupation = new Idle(worker_location, id);
+    	    occupation = new Idle(null, id);
     	    String filename = (Integer.toString(id)).concat(".txt");
+    	    if (central.minersNeeded > 0) {
+    	    		isMiner = true;
+    	    		central.minersNeeded--;
+    	    } else if (central.buildersNeeded > 0) {
+    	    		isMiner = false;
+    	    		central.buildersNeeded--;
+    	    } else isMiner = true;
     	}
 
     	public void prepareTurn() {
-    		System.out.println("id (process): " + id);
+    		//System.out.println("id (process): " + id);
     		long treshold = 500;
 		if (occupation instanceof Idle ) {
 			System.out.println("giving occupation to idle worker");
-			if (!((Idle)occupation).isWaiting()) {
-				if (central.gc.round() == 1) {
-					central.mainWorker = id;
-					occupation = new Replicating(central.gc.unit(id).location().mapLocation(), id);
-					//System.out.println("replicating occupation created");
-				} 
+			if (central.gc.round() == 1 && central.tmpKarbonite >= 60) {
+				isMiner = false;
+				central.earthBase = central.gc.unit(id).location().mapLocation();
+				central.tmpKarbonite -= 60;
+				occupation = new Replicating(central.gc.unit(id).location().mapLocation(), id);
+			} else {
+				if (isMiner) {
+					//25 miners, they will mine
+					MapLocation worker_location = central.gc.unit(id).location().mapLocation();
+					System.out.println("going harvesting");
+					MapLocation karbonite_loc = central.findResources(worker_location);
+					occupation = new Harvesting(worker_location, id, karbonite_loc);
+				} else {
+					Location loc = central.gc.unit(id).location();
+					if (loc.isOnPlanet(Planet.Earth)) {
+						MapLocation worker_location = loc.mapLocation();
+						if (worker_location.distanceSquaredTo(central.earthBase) > 50) {
+							//go to base:
+							Path pth = central.findPath(worker_location, central.earthBase);
+							occupation = new Arriving(worker_location, id, central.earthBase, new Idle(null, id), pth);
+						}
+						if (central.needFactory() && central.tmpKarbonite >= 200 ) {
+							central.tmpKarbonite -= 200;
+							occupation = new PlacingBlueprint(worker_location, id, UnitType.Factory);
+						} else if (central.needRocket() && central.tmpKarbonite >= 150 ) {
+							central.tmpKarbonite -= 150;
+							occupation = new PlacingBlueprint(worker_location, id, UnitType.Rocket);
+						} else if (central.needWorkers() && central.tmpKarbonite >= 60) {
+							central.tmpKarbonite -= 60;
+							occupation = new Replicating(central.gc.unit(id).location().mapLocation(), id);
+						} else {
+							//possibly find a building that needs building
+							//if there is nothig to do just do a random step
+							occupation = new Arriving(worker_location, id, new Idle(null, id));
+						}
+					}
+				
+				}/*
+			
 				if (id == central.mainWorker) {
 					if (central.tmpKarbonite >= 200 ) {
 						central.tmpKarbonite -= 200;
@@ -48,11 +88,11 @@ class WorkerAgent extends UnitAgent {
 					MapLocation karbonite_loc = central.findResources(my_loc);
 					System.out.println("going harvesting");
 					occupation = new Harvesting(my_loc, id, karbonite_loc);
-				}
+				}*/
 			}
 		}
 		try {
-			if (occupation == null) occupation = new Idle(central.gc.unit(id).location().mapLocation(), id);	
+			if (occupation == null) occupation = new Idle(null, id);	
 			occupation = occupation.processOccupation(central);
 			//return true;
 		} catch (Exception e) {
@@ -64,7 +104,7 @@ class WorkerAgent extends UnitAgent {
 
     public void doTurn() {
         try {
-			System.out.println("id (do): " + id);
+			//System.out.println("id (do): " + id);
 			occupation = occupation.doOccupation(central);
 			//return true;
 		} catch (Exception e) {
@@ -129,7 +169,7 @@ class Arriving extends Occupation {
 	}
 
 	public Occupation processOccupation(Central central) {
-		System.out.println("arriving (process)");
+		//System.out.println("arriving (process)");
 		if (path == null) direction = Direction.West;
 		//can move takes in account only map terrain
 		if (goal == null) {
@@ -152,23 +192,26 @@ class Arriving extends Occupation {
 			return this;
 		} else {
 			if (direction == null) {
-				System.out.println("direction is null (process)");
+				//System.out.println("direction is null (process)");
 				if (purpose instanceof Harvesting) {
+					MapLocation goal = central.findExactResources(worker_location);
 					//maybe close enough to get exact resources position
-					return (new Harvesting(worker_location, worker_id, central.findExactResources(worker_location))).processOccupation(central);
+					//System.out.printf("current loc: X:%d Y:%d%n", worker_location.getX(), worker_location.getY());
+					//System.out.printf("goal loc: X:%d Y:%d%n", goal.getX(), goal.getY());
+					return (new Harvesting(worker_location, worker_id, goal)).processOccupation(central);
 				}
 			}
 			else if (central.gc.canMove(worker_id, direction)) System.out.println("cant move (process)");
-			return new Idle(worker_location, worker_id,1, this);
+			return this;
 			//TODO: handle unfeasible move
 			//if not path around is found wait a few turns, o/w assign new occupation
 		}
 	}
 
 	public Occupation doOccupation(Central central) {
-		System.out.println("arriving(do)");
+		//System.out.println("arriving(do)");
 		if (direction == null) {
-			System.out.println("direction is null (do)");
+			//System.out.println("direction is null (do)");
 			return new Idle(worker_location, worker_id);
 		}
 		if (central.gc.canMove(worker_id, direction)) {
@@ -178,7 +221,7 @@ class Arriving extends Occupation {
 			if (goal == null) {
 				//just doing one step
 				if (central.gc.isMoveReady(worker_id)) {
-					System.out.println("Doing a step - with no goal");
+					//System.out.println("Doing a step - with no goal");
 					central.gc.moveRobot(worker_id, direction);
 					worker_location = worker_location.add(direction);
 					return purpose;
@@ -191,7 +234,7 @@ class Arriving extends Occupation {
 				central.gc.moveRobot(worker_id, direction);
 				worker_location = worker_location.add(direction);
 				if (worker_location.equals(goal)) {
-					System.out.println("Reached goal");
+					//System.out.println("Reached goal");
 					
 					//goal is reached, next step is to do what we came do to
 					//not sure if this acctualy works - depends on how MapLocation is implemented
@@ -199,7 +242,7 @@ class Arriving extends Occupation {
 				} else {
 					if (path == null) path = central.findPath(worker_location, goal); //trying to get a path from new position
 					if (path == null) return new Idle(worker_location, worker_id);
-					System.out.println("ROUND: " + central.gc.round() + " goal not reached yet");
+					//System.out.println("ROUND: " + central.gc.round() + " goal not reached yet");
 					//System.out.printf("current loc: X:%d Y:%d%n", worker_location.getX(), worker_location.getY());
 					//System.out.printf("goal loc: X:%d Y:%d%n", goal.getX(), goal.getY());
 					//if goal is yet to be reached, next task is still moving, changing direction (roker_location was updated)
@@ -212,7 +255,7 @@ class Arriving extends Occupation {
 			}
 		} else {
 			//waiting another turn to get path freed
-			System.out.println("Something is in the way/overheated");
+			//System.out.println("Something is in the way/overheated");
 			return this;
 		}	
 
@@ -249,20 +292,20 @@ class Harvesting extends Occupation {
 			worker_location = central.gc.unit(worker_id).location().mapLocation();
 		}
 	
-		System.out.println("processing harvesting");
+		//System.out.println("processing harvesting");
 		if (worker_location.equals(locationOfKarbonite)) {
 			direction = Direction.Center;
 		} else  {
 			if (!worker_location.isAdjacentTo(locationOfKarbonite)) {
 				MapLocation tmp = worker_location;
 				worker_location = null;
-				System.out.println("karbointe not adjacent");
-				System.out.printf("- my_loc: (%d,%d) karb_loc: (%d,%d)%n", tmp.getX(), tmp.getY(), locationOfKarbonite.getX(), locationOfKarbonite.getY());
+				//System.out.println("karbointe not adjacent");
+				//System.out.printf("- my_loc: (%d,%d) karb_loc: (%d,%d)%n", tmp.getX(), tmp.getY(), locationOfKarbonite.getX(), locationOfKarbonite.getY());
 				Path pth = central.findPath(tmp, locationOfKarbonite);
 				if (pth == null) return (new Arriving(tmp, worker_id, this)).processOccupation(central);
 				return (new Arriving(tmp, worker_id, locationOfKarbonite, this, pth)).processOccupation(central);
 			} else {
-				System.out.println("karbonite adj, setting direction");
+				//System.out.println("karbonite adj, setting direction");
 				direction = worker_location.directionTo(locationOfKarbonite);
 			}
 		}
@@ -275,23 +318,24 @@ class Harvesting extends Occupation {
 			}*/   //TODO DECINE ON STRATEGY!!
 			MapLocation tmp = worker_location;
 			worker_location = null;
-			System.out.println("no karbonite left, finding new resources");
+			//System.out.println("no karbonite left, finding new resources (process)");
 			//no karbon here left, should get new task
 			MapLocation new_loc = central.findExactResources(tmp);
 			locationOfKarbonite = new_loc;
-			System.out.printf("no karbonite left, finding new resources, new_loc: (%d,%d)%n", locationOfKarbonite.getX(), locationOfKarbonite.getY());
+			//System.out.printf("no karbonite left, finding new resources, new_loc: (%d,%d)%n", locationOfKarbonite.getX(), locationOfKarbonite.getY());
 			if (!tmp.isAdjacentTo(locationOfKarbonite)) {
-				System.out.println("finding path to new_loc");
+				//System.out.println("finding path to new_loc");
 				Path pth = central.findPath(tmp, locationOfKarbonite);
 				if (pth == null) return new Idle(tmp,worker_id);
 				return (new Arriving(tmp, worker_id, locationOfKarbonite, this, pth)).processOccupation(central);
 			} else {
-				System.out.println("new_loc adjacent, gonna harvest");
+				worker_location = tmp;
+				//if (locationOfKarbonite == null) System.out.println("locOfKarb je null");
 				direction = worker_location.directionTo(locationOfKarbonite);
 				return this;
 			}
 		} else {
-			System.out.println("everything fine, gonna harvest");
+			//System.out.println("everything fine, gonna harvest");
 			//still harvesting in next round
 			return this;
 		}
@@ -299,15 +343,15 @@ class Harvesting extends Occupation {
 	}
 
 	public Occupation doOccupation(Central central) {
-		System.out.println("harvesting (do)");
+		//System.out.println("harvesting (do)");
 		if (central.gc.canHarvest(worker_id, direction)) {
 			//no action this round, if spot has karbonite
-			System.out.println("harvesting");
+			//System.out.println("harvesting");
 			central.gc.harvest(worker_id, direction);
 			if (central.gc.karboniteAt(locationOfKarbonite) <= 0) {
 				//TODO DECINE ON STRATEGY!!
 				//return new Idle(worker_location, worker_id);
-				System.out.println("harvested all resources, tying to get loc of new karbonite");
+				//System.out.println("harvested all resources, tying to get loc of new karbonite");
 				//if karbonite just went out
 				MapLocation new_loc = central.findExactResources(worker_location);
 				locationOfKarbonite = new_loc;
@@ -319,8 +363,8 @@ class Harvesting extends Occupation {
 			}
 
 		} else {
-			System.out.printf("cant harvest- my_loc: (%d,%d) karb_loc: (%d,%d)%n", worker_location.getX(), worker_location.getY(), locationOfKarbonite.getX(), locationOfKarbonite.getY());
-			System.out.printf("resources at loc: %d%n, location: %s", central.gc.karboniteAt(locationOfKarbonite), direction);
+			//System.out.printf("cant harvest- my_loc: (%d,%d) karb_loc: (%d,%d)%n", worker_location.getX(), worker_location.getY(), locationOfKarbonite.getX(), locationOfKarbonite.getY());
+			//System.out.printf("resources at loc: %d%n, location: %s", central.gc.karboniteAt(locationOfKarbonite), direction);
 			return this;
 		}
 		
@@ -363,7 +407,7 @@ class Idle extends Occupation {
 		if (after_waiting != null) {
 			wait --;
 			if (wait == 0) {
-				System.out.println("from idle to occupation");
+				//System.out.println("from idle to occupation");
 				return after_waiting;
 			}
 			
@@ -373,14 +417,6 @@ class Idle extends Occupation {
 		return this;
 	}
 	
-	public MapLocation getLocation() {
-		return worker_location;
-	}
-	
-	public boolean isWaiting() {
-		if (after_waiting != null) return true;
-		return false;
-	}
 }
 
 class PlacingBlueprint extends Occupation {
@@ -402,7 +438,7 @@ class PlacingBlueprint extends Occupation {
 	}
 
 	public Occupation processOccupation(Central central) {
-		System.out.println("blueprinting (process)");
+		//System.out.println("blueprinting (process)");
 		if (worker_location == null) worker_location = central.gc.unit(worker_id).location().mapLocation();
 	
 		if (blueprint_loc != null) {
@@ -439,7 +475,7 @@ class PlacingBlueprint extends Occupation {
 	}
 
 	public Occupation doOccupation(Central central) {
-		System.out.println("blueprinting (do)");
+		//System.out.println("blueprinting (do)");
 		if (central.gc.isOccupiable(worker_location.add(direction))>0) {
 			Direction[] directions = Direction.values();
 	 		//find a feasable 
@@ -457,10 +493,10 @@ class PlacingBlueprint extends Occupation {
 			}*/
 		}
 		try {
-			System.out.println("BLUPRIN PLACED");
+			//System.out.println("BLUPRIN PLACED");
 			//maybe karbonite is too low
 			central.gc.blueprint(worker_id, structure, direction);
-			System.out.println("placing blueprint");
+			//System.out.println("placing blueprint");
 			//I hope this will work!!
 			int blueprint_id = (central.gc.senseUnitAtLocation(worker_location.add(direction))).id();
 			//gets to build the blueprint BUT!! blueprint id is needed!! i hope bluprint is set up right away
@@ -486,7 +522,7 @@ class Building extends Occupation {
 	}
 
 	public Occupation processOccupation(Central central) {
-		System.out.println("building (process)");
+		//System.out.println("building (process)");
 		//can build if adjacent and if worker hasnt made a move yet
 		if ((central.gc.unit(blueprint_id)).health() >= (central.gc.unit(blueprint_id)).maxHealth()) {
 			//is fully built -> get another task
@@ -502,13 +538,13 @@ class Building extends Occupation {
 	}
 
 	public Occupation doOccupation(Central central) {
-		System.out.println("building (do)");
+		//System.out.println("building (do)");
 		if (central.gc.canBuild(worker_id, blueprint_id)) {
-			System.out.println("building");
+			//System.out.println("building");
 			//throws exception if allready built
 			central.gc.build(worker_id, blueprint_id);
 			if ((central.gc.unit(blueprint_id)).health() >= (central.gc.unit(blueprint_id)).maxHealth()) {
-				System.out.println("BUILT");
+				//System.out.println("BUILT");
 				//is fully built -> get another task
 				//TODO: call central to get task
 				return new Idle(worker_location, worker_id);
@@ -536,7 +572,7 @@ class Replicating extends Occupation {
 	}
 	
 	public Occupation processOccupation(Central central) {
-		System.out.println("replicating (process)");
+		//System.out.println("replicating (process)");
 		if (direction == null) {
 			Direction[] directions = Direction.values();
 		 	//find a feasable direction
@@ -570,9 +606,9 @@ class Replicating extends Occupation {
 	}
 	
 	public Occupation doOccupation(Central central) {
-		System.out.println("replicationg (do)");
+		//System.out.println("replicationg (do)");
 		if (central.gc.canReplicate(worker_id, direction)) {
-			System.out.println("Worker replicated");
+			//System.out.println("Worker replicated");
 			//takes into account karbonite, heat, location
 			central.gc.replicate(worker_id, direction);
 			return new Idle(worker_location, worker_id);

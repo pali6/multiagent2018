@@ -9,7 +9,9 @@ class Central {
     Navigation navigation;
     int turnNumber = 0;
     long tmpKarbonite; //added for preparing turn(to get the karbonite that is ment to be spent in this turn, avoiding running aout of it during turn preparation
-    int mainWorker; //added for setting up the base of our team -> main worker will allways be in the base
+    int minersNeeded = 15; //open for changes
+    int buildersNeeded = 5;	//open for changes
+    MapLocation earthBase; //added for setting up the base of our team -> bulder workers will allways be in the base
 
     class Tile {
         boolean passable;
@@ -69,7 +71,18 @@ class Central {
     
     public boolean needWorkers() { //open for changing
     		int num_of_workers = numberOfUnits.get(UnitType.Worker);
-    		if (num_of_workers < 20 && (new Random()).nextInt(3) == 0) return true;
+    		if (num_of_workers < 20 ) return true;
+    		return false;
+    }
+    
+    public boolean needFactory() { //open for changing
+    		int num_of_workers = numberOfUnits.get(UnitType.Worker);
+    		if (num_of_workers > 15 ) return true;
+    		return false;
+    }
+    
+    public boolean needRocket() { //open for changing
+    		if (turnNumber >=500) return true;
     		return false;
     }
     
@@ -83,7 +96,7 @@ class Central {
     }
 
     public MapLocation findExactResources(MapLocation me) {
-        return findResourcesInternal(me, 2.0, 0.5, 0.3, 0.0, true);
+        return findResourcesInternal(me, 1.0, 0.5, 0.3, 0.0, true);
     }
 
     public MapLocation findResources(MapLocation me) {
