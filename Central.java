@@ -10,8 +10,8 @@ class Central {
     int turnNumber = 0;
     long tmpKarbonite; //added for preparing turn(to get the karbonite that is ment to be spent in this turn, avoiding running aout of it during turn preparation
     int minersNeeded = 15; //open for changes
-    int buildersNeeded = 5;	//open for changes
-    MapLocation earthBase; //added for setting up the base of our team -> bulder workers will allways be in the base
+    int buildersNeeded = 7;	//open for changes
+    //MapLocation earthBase; //added for setting up the base of our team -> bulder workers will allways be in the base
 
     class Tile {
         boolean passable;
@@ -51,17 +51,24 @@ class Central {
         gc.queueResearch(UnitType.Ranger); // turn 150
         gc.queueResearch(UnitType.Ranger); // turn 350
         // ??? (~500 turns?) let's put in healers for now
-        gc.queueResearch(UnitType.Healer); // turn 375
-        gc.queueResearch(UnitType.Healer); // turn 475
-        gc.queueResearch(UnitType.Healer); // turn 575
+        gc.queueResearch(UnitType.Rocket); //lets start building rockets erlier (lasts 100 rounds)
+        
+        gc.queueResearch(UnitType.Healer); // turn 375 + 100
+        gc.queueResearch(UnitType.Healer); // turn 475	+ 100
+        gc.queueResearch(UnitType.Healer); // turn 575 + 100
 
-        gc.queueResearch(UnitType.Rocket); // turn 625
-        gc.queueResearch(UnitType.Rocket); // turn 725
-        gc.queueResearch(UnitType.Rocket); // turn 825
+        // turn 625
+        gc.queueResearch(UnitType.Rocket); // turn 725 
+        gc.queueResearch(UnitType.Rocket); // turn 825 
 
         gc.queueResearch(UnitType.Mage); // random stuff
         gc.queueResearch(UnitType.Mage);
         gc.queueResearch(UnitType.Mage);
+    }
+    
+    public UnitType needRobotType() {
+    	//if (needWorkers()) return UnitType.Worker;
+      return UnitType.Ranger;
     }
     
     public boolean needResources() { //open for changing
@@ -77,12 +84,13 @@ class Central {
     
     public boolean needFactory() { //open for changing
     		int num_of_workers = numberOfUnits.get(UnitType.Worker);
-    		if (num_of_workers > 15 ) return true;
+    		Integer num_of_factories = numberOfUnits.get(UnitType.Factory);
+    		if (num_of_workers > 10 &&  (num_of_factories == null || num_of_factories < 5)) return true;
     		return false;
     }
     
     public boolean needRocket() { //open for changing
-    		if (turnNumber >=500) return true;
+    		if (turnNumber >= 450) return true;
     		return false;
     }
     
@@ -234,7 +242,7 @@ class Central {
     }
 
     public void doStatistics(UnitAgent agent){
-        UnitType type = agent.bcUnit().unitType();
+        UnitType type = agent.bcUnit().unitType(); 
         int currentCount = numberOfUnits.getOrDefault(type, 0);
         numberOfUnits.put(type, currentCount + 1);
     }
@@ -308,3 +316,5 @@ class Central {
         }
     }
 }
+
+
