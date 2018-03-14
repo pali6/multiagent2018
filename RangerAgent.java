@@ -220,7 +220,7 @@ class RangerAgent extends UnitAgent {
             Unit unit = nearby.get(i);
             if(central.gc.canAttack(id, unit.id())) {
                 //System.out.println("shoot");
-                if(central.rng.nextInt(20) == 0) // TODO: remove
+                //if(central.rng.nextInt(20) == 0) // TODO: remove
                     central.gc.attack(id, unit.id());
                 doCantAttack(); // maybe?
                 return;
