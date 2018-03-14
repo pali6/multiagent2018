@@ -94,7 +94,8 @@ class RangerAgent extends UnitAgent {
         else if(central.turnNumber % 5 == 0) {
             //System.out.println("failed moving");
             currentPath = central.findPath(loc(), central.findFight(loc()));
-            dir = central.nextStep(currentPath, loc());
+            if(currentPath != null)
+                dir = central.nextStep(currentPath, loc());
             if (central.gc.canMove(id, dir)) {
                 central.gc.moveRobot(id, dir);
                 //System.out.println("backup moving");
@@ -148,13 +149,25 @@ class RangerAgent extends UnitAgent {
             MapLocation targetLoc = null;
             for(int i = 0; i < units.size(); i++) {
                 Unit unit = units.get(i);
-                MapLocation rocketLoc = unit.location().mapLocation();
-                if(unit.unitType() == UnitType.Rocket) {
-                    if(central.gc.canLoad(id, unit.id())) {
+                if(unit.unitType() == UnitType.Rocket && unit.rocketIsUsed() == 0) {
+                    MapLocation rocketLoc = unit.location().mapLocation();
+                    if(central.gc.canLoad(unit.id(), id)) {
                         //System.out.println("loading");
-                        central.gc.load(id, unit.id());
+                        central.gc.load(unit.id(), id);
+                        ((RocketAgent)central.unitAgents.get(unit.id())).nInside++;
                         return true;
                     }
+                    /*
+                    else if(central.gc.isMoveReady(id) && unit.location().isAdjacentTo(central.gc.unit(id).location())) { // temporary rocket launching
+                        MapLocation landingLoc;
+                        do {
+                            landingLoc = new MapLocation(Planet.Mars,
+                                    central.rng.nextInt((int)central.gc.startingMap(Planet.Mars).getWidth()),
+                                    central.rng.nextInt((int)central.gc.startingMap(Planet.Mars).getHeight()));
+                        } while(central.gc.startingMap(Planet.Mars).isPassableTerrainAt(landingLoc) == 0);
+                        if(central.gc.canLaunchRocket(unit.id(), landingLoc))
+                            central.gc.launchRocket(unit.id(), landingLoc);
+                    }*/
                     for(int dx = rocketLoc.getX() - 1; dx <= rocketLoc.getX() + 1; dx++) {
                         for(int dy = rocketLoc.getY() - 1; dy <= rocketLoc.getY() + 1; dy++) {
                             MapLocation neighLoc = new MapLocation(central.gc.planet(), dx, dy);
@@ -167,10 +180,14 @@ class RangerAgent extends UnitAgent {
                     }
                 }
             }
+            if(!central.gc.isMoveReady(id))
+                return false;
             if(targetLoc != null)
                 currentPath = central.findPath(loc(), targetLoc);
+            if(currentPath == null)
+                return false;
             Direction dir = central.nextStep(currentPath, loc());
-            if(central.gc.canMove(id, dir)) {
+            if(dir != null && central.gc.canMove(id, dir)) {
                 central.gc.moveRobot(id, dir);
                 return true;
             }
@@ -180,7 +197,7 @@ class RangerAgent extends UnitAgent {
 
     public void doTurn() {
         //System.out.println("1");
-        if(!central.gc.unit(id).location().isOnMap())
+        if(!central.gc.unit(id).location().isOnMap() || central.gc.unit(id).location().isInGarrison() || central.gc.unit(id).location().isInSpace())
             return;
         //System.out.println("2");
         if(id % 2 == 0 && maybeEnterARocket()) // only some rangers go to a rocket
@@ -203,7 +220,8 @@ class RangerAgent extends UnitAgent {
             Unit unit = nearby.get(i);
             if(central.gc.canAttack(id, unit.id())) {
                 //System.out.println("shoot");
-                central.gc.attack(id, unit.id());
+                if(central.rng.nextInt(20) == 0) // TODO: remove
+                    central.gc.attack(id, unit.id());
                 doCantAttack(); // maybe?
                 return;
             }

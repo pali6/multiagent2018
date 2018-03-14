@@ -556,6 +556,8 @@ class Building extends Occupation {
 	public Occupation processOccupation(Central central) {
 		//System.out.println("building (process)");
 		//can build if adjacent and if worker hasnt made a move yet
+		if(!central.gc.canSenseUnit(blueprint_id))
+			return new Idle(worker_location, worker_id);
 		if ((central.gc.unit(blueprint_id)).health() >= (central.gc.unit(blueprint_id)).maxHealth()) {
 			//is fully built -> get another task
 			//TODO: call central to get task

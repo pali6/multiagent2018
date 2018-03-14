@@ -80,7 +80,9 @@ class Central {
     
     public UnitType needRobotType() {
     	//if (needWorkers()) return UnitType.Worker;
-      return UnitType.Ranger;
+        if(numberOfUnits.get(UnitType.Worker) < 20 && turnNumber < 200 && rng.nextInt(3) == 0)
+            return UnitType.Worker;
+        return UnitType.Ranger;
     }
     
     public boolean needResources() { //open for changing
@@ -97,6 +99,8 @@ class Central {
     public boolean needFactory() { //open for changing
     		int num_of_workers = numberOfUnits.get(UnitType.Worker);
     		Integer num_of_factories = numberOfUnits.get(UnitType.Factory);
+    		if((num_of_factories == null || num_of_factories == 0) && num_of_workers > 3)
+    		    return true;
     		if (num_of_workers > 10 &&  (num_of_factories == null || num_of_factories < 5)) return true;
     		return false;
     }
@@ -120,7 +124,7 @@ class Central {
     }
 
     public MapLocation findResources(MapLocation me) {
-        return findResourcesInternal(me, 1.0, 4.0, 1.0, 1.0, false);
+        return findResourcesInternal(me, 1.0, 2.0, 2.0, 1.0, false);
     }
 
     public MapLocation findFight(MapLocation me) {
@@ -198,6 +202,12 @@ class Central {
     public MapLocation findResourcesInternal(MapLocation me, double amountPriority, double nearPriority,
                                              double safetyPriority, double nearbyAmountPriority, boolean needKarbonite) {
 
+        if(gc.getTimeLeftMs() < 100) {
+            MapLocation defaultLoc = null;
+            while(defaultLoc == null || !map[defaultLoc.getX()][defaultLoc.getY()].passable)
+                defaultLoc = new MapLocation(gc.planet(), rng.nextInt(width), rng.nextInt(height));
+            return defaultLoc;
+        }
         double[][] localValuation = new double[width][height];
         double[][] distances = new double[width][height];
         for(int x = 0; x < width; x++) {
@@ -259,6 +269,10 @@ class Central {
                     else if(gc.karboniteAt(loc) == 0)
                         localValuation[x][y] = 0;
                 }
+                else {
+                    if(map[x][y].lastKarbonite == 0)
+                        localValuation[x][y] /= 10.0;
+                }
                 if(localValuation[x][y] > bestValue) {
                     bestValue = localValuation[x][y];
                     bestX = x;
@@ -289,7 +303,8 @@ class Central {
     }
 
     void resolveValuation() {
-
+        if(gc.getTimeLeftMs() < 100)
+            return;
         for(int x = 0; x < width; x++) {
             for(int y = 0; y < height; y++) {
                 double karbonite;
@@ -349,7 +364,7 @@ class Central {
     }
 
     public void doStatistics(UnitAgent agent){
-        UnitType type = agent.bcUnit().unitType(); 
+        UnitType type = agent.bcUnit().unitType();
         int currentCount = numberOfUnits.getOrDefault(type, 0);
         numberOfUnits.put(type, currentCount + 1);
     }
@@ -416,10 +431,6 @@ class Central {
 
     public void main()
     {
-        if(gc.planet() != Planet.Earth) { // Mars placeholder
-            while(true)
-                gc.nextTurn();
-        }
         while(true)
         {
             try{
@@ -428,6 +439,8 @@ class Central {
             catch(Exception e){
                 e.printStackTrace();
             }
+            if(turnNumber == 1)
+                System.out.println("hello");
             /*
 		    if(turnNumber == 1) {
                 for(int x = 0; x < width; x++)
