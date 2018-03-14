@@ -64,11 +64,11 @@ class Nothing extends Produce {
 				}
 			}
 			if (direction != null) {
-				System.out.println("unloaded robot");
+				//System.out.println("unloaded robot");
 				central.gc.unload(id, direction);
 				return new Idl(id);
 			}
-			System.out.println("robot made");
+			//System.out.println("robot made");
 			return this;
 			
 		}
@@ -84,11 +84,11 @@ class Idl extends Produce {
 	}	
 	
 	public Produce processOccupation(Central central) {
-		System.out.println("wasting rounds (process)");
+		//System.out.println("wasting rounds (process)");
 		return this;
 	}
 	public Produce doOccupation(Central central) {
-		System.out.println("wasting rounds (do)");
+		//System.out.println("wasting rounds (do)");
 		return this;
 	}
 }
@@ -104,7 +104,7 @@ class Robot extends Produce {
 	public Produce processOccupation(Central central) {
 		
 		if (central.tmpKarbonite  < 50) {
-			System.out.println("no karbonite");
+			//System.out.println("no karbonite");
 			return new Idl(id);
 		} else {
 			central.tmpKarbonite -= 50;
@@ -113,7 +113,7 @@ class Robot extends Produce {
 	}
 	public Produce doOccupation(Central central) {
 		central.gc.produceRobot(id, type);
-		System.out.println("Producing robot");
+		//System.out.println("Producing robot");
 		return new Nothing(id, 16);
 	}
 
