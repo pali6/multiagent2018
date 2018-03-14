@@ -54,7 +54,7 @@ class RangerAgent extends UnitAgent {
         for(int i = 0; i < nearby.size(); i++) {
             Unit unit = nearby.get(i);
             int unitDist = (int) unit.location().mapLocation().distanceSquaredTo(loc());
-            if(unitDist <= 10) {
+            if(unitDist <= 20) {
                 int closestDist = -1;
                 if(closeTarget != null)
                     closestDist = (int) closeTarget.location().mapLocation().distanceSquaredTo(loc());
@@ -220,7 +220,7 @@ class RangerAgent extends UnitAgent {
             Unit unit = nearby.get(i);
             if(central.gc.canAttack(id, unit.id())) {
                 //System.out.println("shoot");
-                //if(central.rng.nextInt(20) == 0) // TODO: remove
+                // if(central.rng.nextInt(20) == 0) // TODO: remove
                     central.gc.attack(id, unit.id());
                 doCantAttack(); // maybe?
                 return;

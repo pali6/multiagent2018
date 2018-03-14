@@ -13,7 +13,11 @@ class FactoryAgent extends UnitAgent {
     public void prepareTurn() {
     //	System.out.println("process");
     		if (produce instanceof Idl) {
-    			produce = new Robot(central.needRobotType(), id);
+    			UnitType needed = central.needRobotType();
+    			if(needed == null)
+    				produce = new IsBuilt(id, central);
+    			else
+    				produce = new Robot(needed, id);
     		}
     
     		produce = produce.processOccupation(central);
@@ -21,6 +25,7 @@ class FactoryAgent extends UnitAgent {
 
     public void doTurn() {
         	//System.out.println("do");
+
     		produce = produce.doOccupation(central);
         //produceRobot(central.neededRobotType());
     }
@@ -132,7 +137,7 @@ class IsBuilt extends Produce {
 		System.out.println(" structure: " +unit.structureIsBuilt());*/
 		unit = central.gc.unit(id);
 		if (unit.health() == 300) {
-			System.out.println("BUILT!");
+			//System.out.println("BUILT!");
 			return new Idl(id);
 		} 
 		return this;

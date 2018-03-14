@@ -27,6 +27,8 @@ class WorkerAgent extends UnitAgent {
     	}
 
     	public void prepareTurn() {
+    		if(central.rng.nextInt(50) == 0)
+    			occupation = new Idle(null, id);
     		//System.out.println("id (process): " + id);
 		if (occupation instanceof Idle ) {
 			//System.out.println("giving occupation to idle worker");
@@ -529,6 +531,8 @@ class PlacingBlueprint extends Occupation {
 			//maybe karbonite is too low
 			if (central.gc.canBlueprint(worker_id, structure, direction)) {
 				central.gc.blueprint(worker_id, structure, direction);
+				if(structure == UnitType.Rocket)
+					central.rocketsBuilt++;
 				//System.out.println("placing blueprint");
 				//I hope this will work!!
 				int blueprint_id = (central.gc.senseUnitAtLocation(worker_location.add(direction))).id();

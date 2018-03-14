@@ -11,6 +11,8 @@ class Central {
     long tmpKarbonite; //added for preparing turn(to get the karbonite that is ment to be spent in this turn, avoiding running aout of it during turn preparation
     int minersNeeded = 15; //open for changes
     int buildersNeeded = 7;	//open for changes
+    int rocketsBuilt = 0;
+    int seenAvailableResources = 0;
     Random rng;
     //MapLocation earthBase; //added for setting up the base of our team -> bulder workers will allways be in the base
     double[][] valuation;
@@ -80,33 +82,49 @@ class Central {
     
     public UnitType needRobotType() {
     	//if (needWorkers()) return UnitType.Worker;
-        if(numberOfUnits.get(UnitType.Worker) < 20 && turnNumber < 200 && rng.nextInt(3) == 0)
-            return UnitType.Worker;
+        if(needRocket())// || (gc.karbonite() < 200 && turnNumber > 300 && rocketsBuilt < 2))
+            return null;
+        //if(numberOfUnits.get(UnitType.Worker) < 10 && turnNumber < 200 && rng.nextInt(3) == 0)
+        //    return UnitType.Worker;
         return UnitType.Ranger;
     }
     
     public boolean needResources() { //open for changing
-    		if (tmpKarbonite < 100) return true;
+    		if (tmpKarbonite < 300) return true;
     		return false;
     }
-    
+
     public boolean needWorkers() { //open for changing
     		int num_of_workers = numberOfUnits.get(UnitType.Worker);
-    		if (num_of_workers < 20 ) return true;
+    		Integer numRangers = numberOfUnits.get(UnitType.Ranger);
+    		if(numRangers == null) numRangers = 0;
+    		if(turnNumber > 100 && numRangers < 2) return false;
+            if(needRocket())//seenAvailableResources < 200 || (gc.karbonite() < 200 && turnNumber > 300 && rocketsBuilt < 2))
+                return num_of_workers < 6;
+    		if (seenAvailableResources > 400 && num_of_workers < 20 ) return true;
+        if (seenAvailableResources > 700 && num_of_workers < 30 ) return true;
+    		if(num_of_workers < 10)
+    		    return true;
     		return false;
     }
     
     public boolean needFactory() { //open for changing
+        if(needRocket())//gc.karbonite() < 200 && turnNumber > 300 && rocketsBuilt < 2)
+            return false;
     		int num_of_workers = numberOfUnits.get(UnitType.Worker);
     		Integer num_of_factories = numberOfUnits.get(UnitType.Factory);
     		if((num_of_factories == null || num_of_factories == 0) && num_of_workers > 3)
     		    return true;
-    		if (num_of_workers > 10 &&  (num_of_factories == null || num_of_factories < 5)) return true;
+    		if (num_of_workers > 10 &&  (num_of_factories == null || num_of_factories < 3) && gc.karbonite() > 200) return true;
+    		if(num_of_workers > 10 && turnNumber > 180 && (num_of_factories < 2))
+    		    return true;
     		return false;
     }
     
     public boolean needRocket() { //open for changing
-    		if (turnNumber >= 450) return true;
+    		if (turnNumber >= 450 && rocketsBuilt < 1 && numberOfUnits.get(UnitType.Ranger) >= 8) return true;
+    		if(turnNumber >= 520 && rocketsBuilt < 2 && numberOfUnits.get(UnitType.Ranger) >= 8) return true;
+    		//if(turnNumber >= 600 && rocketsBuilt < 7) return true;
     		return false;
     }
     
@@ -124,7 +142,7 @@ class Central {
     }
 
     public MapLocation findResources(MapLocation me) {
-        return findResourcesInternal(me, 1.0, 2.0, 2.0, 1.0, false);
+        return findResourcesInternal(me, 1.0, 5.0, 3.0, 1.0, false);
     }
 
     public MapLocation findFight(MapLocation me) {
@@ -251,7 +269,7 @@ class Central {
                     double dangerousness = -map[entry.x][entry.y].teamControl;
                     if(dangerousness < 0)
                         dangerousness = 0;
-                    double neighDist = entry.distance + nearPriority + dangerousness * safetyPriority;
+                    double neighDist = entry.distance + nearPriority + Math.min(dangerousness, 1.0) * safetyPriority;
                     q.add(new Entry(neighDist, dx, dy));
                 }
         }
@@ -278,7 +296,7 @@ class Central {
                     bestY = y;
                 }
             }
-        valuationPenalty[bestX][bestY] += 100.0;
+        valuationPenalty[bestX][bestY] += 1000.0;
         return new MapLocation(gc.planet(), bestX, bestY);
     }
 
@@ -304,6 +322,7 @@ class Central {
     void resolveValuation() {
         if(gc.getTimeLeftMs() < 100)
             return;
+        seenAvailableResources = 0;
         for(int x = 0; x < width; x++) {
             for(int y = 0; y < height; y++) {
                 double karbonite;
@@ -317,6 +336,7 @@ class Central {
                 valuation[x][y] = karbonite;
                 nearbyValuation[x][y] = karbonite;
                 valuationPenalty[x][y] *= 0.98;
+                seenAvailableResources += karbonite;
             }
         }
 
@@ -369,6 +389,7 @@ class Central {
     }
 
     public void updatePresences() {
+
         for(int x = 0; x < width; x++)
             for(int y = 0; y < height; y++) {
                 Tile tile = map[x][y];
@@ -438,8 +459,8 @@ class Central {
             catch(Exception e){
                 e.printStackTrace();
             }
-            if(turnNumber == 1)
-                System.out.println("hello");
+            if(turnNumber % 20 == 0)
+                System.out.printf("%d %d %d\n", gc.karbonite(), rocketsBuilt, seenAvailableResources);
             /*
 		    if(turnNumber == 1) {
                 for(int x = 0; x < width; x++)
