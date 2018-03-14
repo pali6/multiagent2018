@@ -11,7 +11,11 @@ class Central {
     long tmpKarbonite; //added for preparing turn(to get the karbonite that is ment to be spent in this turn, avoiding running aout of it during turn preparation
     int minersNeeded = 15; //open for changes
     int buildersNeeded = 7;	//open for changes
+    Random rng;
     //MapLocation earthBase; //added for setting up the base of our team -> bulder workers will allways be in the base
+    double[][] valuation;
+    double[][] nearbyValuation;
+    double[][] valuationPenalty;
 
     class Tile {
         boolean passable;
@@ -20,12 +24,15 @@ class Central {
         double teamControl;
         int lastKarbonite;
         int turnsSinceSeen;
+        boolean hasEnemyFactory;
+        boolean hasEnemyRocket;
     };
 
     public Tile[][] map;
     public int height, width;
 
     public Central() {
+        rng = new Random();
         gc = new GameController();
         unitAgents = new HashMap<>();
         numberOfUnits = new HashMap<>();
@@ -35,6 +42,11 @@ class Central {
         PlanetMap planetMap = gc.startingMap(gc.planet());
         height = (int) planetMap.getHeight();
         width = (int) planetMap.getWidth();
+
+        valuation = new double[width][height];
+        nearbyValuation = new double[width][height];
+        valuationPenalty = new double[width][height];
+
         map = new Tile[width][height];
         for(int x = 0; x < width; x++) {
             for (int y = 0; y < height; y++) {
@@ -104,44 +116,98 @@ class Central {
     }
 
     public MapLocation findExactResources(MapLocation me) {
-        return findResourcesInternal(me, 1.0, 0.5, 0.3, 0.0, true);
+        return findResourcesInternal(me, 2.0, 1.0, 0.3, 0.0, true);
     }
 
     public MapLocation findResources(MapLocation me) {
-        return findResourcesInternal(me, 1.0, 0.5, 1.0, 1.0, false);
+        return findResourcesInternal(me, 1.0, 4.0, 1.0, 1.0, false);
+    }
+
+    public MapLocation findFight(MapLocation me) {
+        double[][] distances = new double[width][height];
+        for(int x = 0; x < width; x++) {
+            for(int y = 0; y < height; y++) {
+                distances[x][y] = -1;
+            }
+        }
+
+        class Entry implements Comparable<Entry> {
+            public Double distance;
+            public int x, y;
+
+            public Entry(double distance, int x, int y) {
+                this.distance = distance;
+                this.x = x;
+                this.y = y;
+            }
+
+            @Override
+            public int compareTo(Entry other) {
+                return this.distance.compareTo(other.distance);
+            }
+        }
+
+        MapLocation defaultLoc = null;
+
+        PriorityQueue<Entry> q = new PriorityQueue<>();
+        q.add(new Entry(0, me.getX(), me.getY()));
+        while(!q.isEmpty()) {
+            Entry entry = q.poll();
+            if(distances[entry.x][entry.y] != -1 && entry.distance >=  distances[entry.x][entry.y])
+                continue;
+            distances[entry.x][entry.y] = entry.distance;
+            for(int dx = entry.x - 1; dx <= entry.x + 1; dx++)
+                for(int dy = entry.y - 1; dy <= entry.y + 1; dy++){
+                    MapLocation loc = new MapLocation(gc.planet(), dx, dy);
+                    if(dx < 0 || dy < 0 || dx >= width || dy >= height || (dx == entry.x && dy == entry.y) || !map[dx][dy].passable)
+                        continue;
+                    if(gc.hasUnitAtLocation(loc)) {
+                        Unit unit = gc.senseUnitAtLocation(loc);
+                        if(unit.team() == gc.team())
+                            continue;
+                        else if(rng.nextInt(3) == 0) {
+                            for (int ddx = dx - 1; ddx <= dx + 1; ddx++)
+                                for (int ddy = dy - 1; ddy <= dy + 1; ddy++) {
+                                    if (ddx < 0 || ddy < 0 || ddx >= width || ddy >= height || (ddx == dx && ddy == dy) || !map[ddx][ddy].passable ||
+                                            gc.hasUnitAtLocation(new MapLocation(gc.planet(), ddx, ddy)))
+                                        continue;
+                                    return new MapLocation(gc.planet(), ddx, ddy);
+                                }
+                        }
+                        else if(defaultLoc == null) {
+                            for (int ddx = dx - 1; ddx <= dx + 1; ddx++)
+                                for (int ddy = dy - 1; ddy <= dy + 1; ddy++) {
+                                    if (ddx < 0 || ddy < 0 || ddx >= width || ddy >= height || (ddx == dx && ddy == dy) || !map[ddx][ddy].passable ||
+                                            gc.hasUnitAtLocation(new MapLocation(gc.planet(), ddx, ddy)))
+                                        continue;
+                                    defaultLoc = new MapLocation(gc.planet(), ddx, ddy);
+                                }
+                        }
+                    }
+                    double dangerousness = -map[entry.x][entry.y].teamControl;
+                    double neighDist = entry.distance + 1;
+                    q.add(new Entry(neighDist, dx, dy));
+                }
+        }
+
+        while(defaultLoc == null || !map[defaultLoc.getX()][defaultLoc.getY()].passable)
+            defaultLoc = new MapLocation(gc.planet(), rng.nextInt(width), rng.nextInt(height));
+        return defaultLoc;
     }
 
     public MapLocation findResourcesInternal(MapLocation me, double amountPriority, double nearPriority,
                                              double safetyPriority, double nearbyAmountPriority, boolean needKarbonite) {
 
-        double[][] valuation = new double[width][height];
+        double[][] localValuation = new double[width][height];
         double[][] distances = new double[width][height];
         for(int x = 0; x < width; x++) {
             for(int y = 0; y < height; y++) {
-                double karbonite;
-                if(gc.canSenseLocation(new MapLocation(gc.planet(), x, y)))
-                    karbonite = gc.karboniteAt(new MapLocation(gc.planet(), x, y));
-                else {
-                    karbonite = map[x][y].lastKarbonite;
-                    if(map[x][y].teamControl < -0.1) // no idea what value to put here
-                        karbonite *= Math.pow(0.99, map[x][y].turnsSinceSeen);
-                }
-                valuation[x][y] += karbonite * amountPriority;
                 distances[x][y] = -1;
-            }
-        }
-
-        for(int i = 0; i < 5; i++) {
-            for (int x = 0; x < width; x++) {
-                for (int y = 0; y < height; y++) {
-                    for (int dx = x - 1; dx <= x + 1; dx++) {
-                        for (int dy = y - 1; dy <= y + 1; dy++) {
-                            if ((dx == x && dy == y) || dx < 0 || dy < 0 || dx >= width || dy >= height || !map[dx][dy].passable)
-                                continue;
-                            valuation[dx][dy] += 0.05 * valuation[x][y] * nearbyAmountPriority;
-                        }
-                    }
-                }
+                localValuation[x][y] = amountPriority * valuation[x][y]
+                        + nearbyAmountPriority * nearbyValuation[x][y]
+                        - valuationPenalty[x][y];
+                if(!needKarbonite)
+                    localValuation[x][y] -= valuationPenalty[x][y];
             }
         }
 
@@ -165,7 +231,7 @@ class Central {
         q.add(new Entry(0, me.getX(), me.getY()));
         while(!q.isEmpty()) {
             Entry entry = q.poll();
-            if(entry.distance >=  distances[entry.x][entry.y])
+            if(distances[entry.x][entry.y] != -1 && entry.distance >=  distances[entry.x][entry.y])
                 continue;
             distances[entry.x][entry.y] = entry.distance;
             for(int dx = entry.x - 1; dx <= entry.x + 1; dx++)
@@ -176,7 +242,7 @@ class Central {
                     double dangerousness = -map[entry.x][entry.y].teamControl;
                     if(dangerousness < 0)
                         dangerousness = 0;
-                    double neighDist = entry.distance + dangerousness * safetyPriority;
+                    double neighDist = entry.distance + nearPriority + dangerousness * safetyPriority;
                     q.add(new Entry(neighDist, dx, dy));
                 }
         }
@@ -185,21 +251,21 @@ class Central {
         int bestX = 0, bestY = 0;
         for(int x = 0; x < width; x++)
             for(int y = 0; y < height; y++) {
-                valuation[x][y] = valuation[x][y] * (1 - nearPriority) + distances[x][y] * nearPriority;
+                localValuation[x][y] = localValuation[x][y] - distances[x][y];
                 MapLocation loc = new MapLocation(gc.planet(), x, y);
                 if(needKarbonite) {
                     if (!gc.canSenseLocation(loc))
-                        valuation[x][y] = 0;
+                        localValuation[x][y] = 0;
                     else if(gc.karboniteAt(loc) == 0)
-                        valuation[x][y] = 0;
+                        localValuation[x][y] = 0;
                 }
-                if(valuation[x][y] > bestValue) {
-                    bestValue = valuation[x][y];
+                if(localValuation[x][y] > bestValue) {
+                    bestValue = localValuation[x][y];
                     bestX = x;
                     bestY = y;
                 }
             }
-
+        valuationPenalty[bestX][bestY] += 10.0;
         return new MapLocation(gc.planet(), bestX, bestY);
     }
 
@@ -211,6 +277,8 @@ class Central {
                 return new WorkerAgent(unit.id(), this);
             case Ranger:
                 return new RangerAgent(unit.id(), this);
+            case Rocket:
+                return new RocketAgent(unit.id(), this);
             default:
                 return null;
         }
@@ -218,6 +286,39 @@ class Central {
 
     public interface AgentProcess {
         void call(UnitAgent agent);
+    }
+
+    void resolveValuation() {
+
+        for(int x = 0; x < width; x++) {
+            for(int y = 0; y < height; y++) {
+                double karbonite;
+                if(gc.canSenseLocation(new MapLocation(gc.planet(), x, y)))
+                    karbonite = gc.karboniteAt(new MapLocation(gc.planet(), x, y));
+                else {
+                    karbonite = map[x][y].lastKarbonite;
+                    if(map[x][y].teamControl < -0.1) // no idea what value to put here
+                        karbonite *= Math.pow(0.99, map[x][y].turnsSinceSeen);
+                }
+                valuation[x][y] = karbonite;
+                nearbyValuation[x][y] = karbonite;
+                valuationPenalty[x][y] *= 0.98;
+            }
+        }
+
+        for(int i = 0; i < 5; i++) {
+            for (int x = 0; x < width; x++) {
+                for (int y = 0; y < height; y++) {
+                    for (int dx = x - 1; dx <= x + 1; dx++) {
+                        for (int dy = y - 1; dy <= y + 1; dy++) {
+                            if ((dx == x && dy == y) || dx < 0 || dy < 0 || dx >= width || dy >= height || !map[dx][dy].passable)
+                                continue;
+                            nearbyValuation[dx][dy] += 0.05 * nearbyValuation[x][y];
+                        }
+                    }
+                }
+            }
+        }
     }
 
     public void applyToUnits(AgentProcess process)
@@ -231,9 +332,15 @@ class Central {
                 agent = unitAgents.get(unit.id());
             }
             if(agent == null)
-                System.out.println("No agent for unit.");
-            else
-                process.call(agent);
+                System.out.printf("No agent for unit of type %s.", unit.unitType().toString());
+            else {
+                try {
+                    process.call(agent);
+                }
+                catch(Exception e) {
+                    e.printStackTrace();
+                }
+            }
         }
     }
 
@@ -252,18 +359,35 @@ class Central {
             for(int y = 0; y < height; y++) {
                 Tile tile = map[x][y];
                 if(!gc.canSenseLocation(new MapLocation(gc.planet(), x, y))) {
-                    // TODO
+                    tile.teamControl += (tile.ourPresence - tile.enemyPresence) / 4.0;
+                    for (int dx = x - 1; dx <= x + 1; dx++) {
+                        for (int dy = y - 1; dy <= y + 1; dy++) {
+                            if ((dx == x && dy == y) || dx < 0 || dy < 0 || dx >= width || dy >= height || !map[dx][dy].passable)
+                                continue;
+                            map[x][y].teamControl += 0.05 * tile.teamControl;
+                        }
+                    }
+                    tile.teamControl *= 0.6;
+                    tile.ourPresence *= 0.9;
+                    tile.enemyPresence *= 0.9;
                     tile.turnsSinceSeen++;
                     continue;
                 }
                 tile.turnsSinceSeen = 0;
+                tile.hasEnemyFactory = false;
+                tile.hasEnemyRocket = false;
                 tile.lastKarbonite = (int) gc.karboniteAt(new MapLocation(gc.planet(), x, y));
                 if (gc.hasUnitAtLocation(new MapLocation(gc.planet(), x, y))) {
                     Unit unit = gc.senseUnitAtLocation(new MapLocation(gc.planet(), x, y));
                     if (unit.team() == gc.team())
                         tile.ourPresence += 1.0;
-                    else
+                    else {
                         tile.enemyPresence += 1.0;
+                        if(unit.unitType() == UnitType.Factory)
+                            tile.hasEnemyFactory = true;
+                        if(unit.unitType() == UnitType.Rocket)
+                            tile.hasEnemyRocket = true;
+                    }
                 }
                 tile.teamControl += tile.ourPresence - tile.enemyPresence;
                 for (int dx = x - 1; dx <= x + 1; dx++) {
@@ -281,6 +405,8 @@ class Central {
 
     public void doTurn() {
         tmpKarbonite = gc.karbonite(); //refreshing karbonite at each turn;
+        if(turnNumber % 10 == 0)
+            resolveValuation();
         updatePresences();
         resetStatistics();
         applyToUnits((agent) -> { doStatistics(agent); });
