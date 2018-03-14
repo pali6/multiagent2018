@@ -59,12 +59,16 @@ class WorkerAgent extends UnitAgent {
 							Path pth = central.findPath(worker_location, central.earthBase);
 							occupation = new Arriving(worker_location, id, central.earthBase, new Idle(null, id), pth);
 						}*/
-						if (central.needFactory() && central.tmpKarbonite >= 200 ) {
-							central.tmpKarbonite -= 200;
-							occupation = new PlacingBlueprint(worker_location, id, UnitType.Factory);
-						} else if (central.needRocket() && central.tmpKarbonite >= 150 ) {
-							central.tmpKarbonite -= 150;
-							occupation = new PlacingBlueprint(worker_location, id, UnitType.Rocket);
+						if (central.needFactory() ) {
+							if(central.tmpKarbonite >= 200) {
+								central.tmpKarbonite -= 200;
+								occupation = new PlacingBlueprint(worker_location, id, UnitType.Factory);
+							}
+						} else if (central.needRocket()) {
+							if(central.tmpKarbonite >= 150 ) {
+								central.tmpKarbonite -= 150;
+								occupation = new PlacingBlueprint(worker_location, id, UnitType.Rocket);
+							}
 						} else if (central.needWorkers() && central.tmpKarbonite >= 60) {
 							central.tmpKarbonite -= 60;
 							occupation = new Replicating(central.gc.unit(id).location().mapLocation(), id);
