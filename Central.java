@@ -214,8 +214,7 @@ class Central {
             for(int y = 0; y < height; y++) {
                 distances[x][y] = -1;
                 localValuation[x][y] = amountPriority * valuation[x][y]
-                        + nearbyAmountPriority * nearbyValuation[x][y]
-                        - valuationPenalty[x][y];
+                        + nearbyAmountPriority * nearbyValuation[x][y];
                 if(!needKarbonite)
                     localValuation[x][y] -= valuationPenalty[x][y];
             }
@@ -265,9 +264,9 @@ class Central {
                 MapLocation loc = new MapLocation(gc.planet(), x, y);
                 if(needKarbonite) {
                     if (!gc.canSenseLocation(loc))
-                        localValuation[x][y] = 0;
+                        localValuation[x][y] = -99999;
                     else if(gc.karboniteAt(loc) == 0)
-                        localValuation[x][y] = 0;
+                        localValuation[x][y] = -99999;
                 }
                 else {
                     if(map[x][y].lastKarbonite == 0)
@@ -279,7 +278,7 @@ class Central {
                     bestY = y;
                 }
             }
-        valuationPenalty[bestX][bestY] += 10.0;
+        valuationPenalty[bestX][bestY] += 100.0;
         return new MapLocation(gc.planet(), bestX, bestY);
     }
 

@@ -60,6 +60,7 @@ class WorkerAgent extends UnitAgent {
 							}
 						
 					} else {
+
 						if (loc.isOnPlanet(Planet.Earth)) {
 							MapLocation worker_location = loc.mapLocation();
 							/*if (worker_location.distanceSquaredTo(central.earthBase) > 10) {
@@ -93,6 +94,7 @@ class WorkerAgent extends UnitAgent {
 								//if there is nothig to do just do a random step
 								//occupation = new Arriving(worker_location, id, new Idle(null, id));
 							}
+
 						}
 					}
 					if (occupation instanceof Idle ) new Arriving(central.gc.unit(id).location().mapLocation(), id, new Idle(null, id));
