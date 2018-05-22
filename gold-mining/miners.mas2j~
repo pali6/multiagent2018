@@ -11,7 +11,7 @@
 MAS miners {
     infrastructure: Centralised
 
-    environment: env.MiningEnvironment(11, 0, yes, "sl_dummy", "sl_miner", 1000)
+    environment: env.MiningEnvironment(11, 0, yes, "dummy", "miner", 1000)
         // parameters: 1. environment configuration id (from 1 to 13)
         //                   11 is Fence in 2007 Contest
         //                   12 is Semiramis in 2007 Contest
@@ -24,7 +24,7 @@ MAS miners {
 
     agents:
         // red team
-        sl_dummy agentArchClass arch.LocalMinerArch #6;
+        dummy agentArchClass arch.LocalMinerArch #6;
 
         // blue team
         sl_leader

@@ -1,11 +1,11 @@
 // miner agent
 
-{ include("moving.asl") }               // plans for movements in the scenario
-{ include("search_unvisited.asl") }     // plans for finding gold
-{ include("search_quadrant.asl") }      // idem
-{ include("fetch_gold.asl") }           // plans for fetch gold goal
-{ include("goto_depot.asl") }           // plans for go to depot goal
-{ include("allocation_protocol.asl") }  // plans for the gold allocation protocol
+{ include("sl_moving.asl") }               // plans for movements in the scenario
+{ include("sl_search_unvisited.asl") }     // plans for finding gold
+{ include("sl_search_quadrant.asl") }      // idem
+{ include("sl_fetch_gold.asl") }           // plans for fetch gold goal
+{ include("sl_goto_depot.asl") }           // plans for go to depot goal
+{ include("sl_allocation_protocol.asl") }  // plans for the gold allocation protocol
 
 /* functions */
 
@@ -29,11 +29,11 @@ search_gold_strategy(near_unvisited). // initial strategy
      !inform_gsize_to_leader(S);
      !choose_goal.
 
-+!inform_gsize_to_leader(S) : .my_name(miner1)
++!inform_gsize_to_leader(S) : .my_name(sl_miner1)
    <- ?depot(S,DX,DY);
-      .send(leader,tell,depot(S,DX,DY));
+      .send(sl_leader,tell,depot(S,DX,DY));
       ?gsize(S,W,H);
-      .send(leader,tell,gsize(S,W,H)).
+      .send(sl_leader,tell,gsize(S,W,H)).
 +!inform_gsize_to_leader(_).
 
 

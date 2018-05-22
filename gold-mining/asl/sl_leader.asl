@@ -13,10 +13,10 @@
      +quad(S,3, 0,       CellH,   W div 2 - 1, (CellH * 2)-1);
      +quad(S,4, W div 2, CellH,   W - 1,       (CellH * 2)-1);
 
-     !inform_quad(S,miner1,1);
-     !inform_quad(S,miner2,2);
-     !inform_quad(S,miner3,3);
-     !inform_quad(S,miner4,4).
+     !inform_quad(S,sl_miner1,1);
+     !inform_quad(S,sl_miner2,2);
+     !inform_quad(S,sl_miner3,3);
+     !inform_quad(S,sl_miner4,4).
 
 
 // only informs the quadrant if the depot is not in the quadrant
@@ -38,9 +38,9 @@
      .count(init_pos(S,_,_),6) // if all miners have sent their position
   <- // remember who doesn't have a quadrant allocated
      // (initially 4 miners that will find gold by quadrant)
-     +~quad(S,miner1); +~quad(S,miner2);
-     +~quad(S,miner3); +~quad(S,miner4);
-     //+~quad(S,miner5); +~quad(S,miner6);
+     +~quad(S,sl_miner1); +~quad(S,sl_miner2);
+     +~quad(S,sl_miner3); +~quad(S,sl_miner4);
+     //+~quad(S,sl_miner5); +~quad(S,sl_miner6);
      !assign_quads(S,[1,2,3,4]).
 
 
