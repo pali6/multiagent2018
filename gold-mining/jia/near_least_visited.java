@@ -107,6 +107,7 @@ public class near_least_visited extends DefaultInternalAction {
                         }
                     }
                 }
+                /*
                 String log = "";
                 for (int y = 0; y < model.getHeight(); y++) {
                     for (int x = 0; x < model.getWidth(); x++) {
@@ -150,7 +151,7 @@ public class near_least_visited extends DefaultInternalAction {
                     log = "";
                 }
                 ts.getLogger().info(bestX + " " + bestY + " " + bestUtility);
-                
+                */
 
                 un.unifies(terms[2], new NumberTermImpl(bestX));
                 un.unifies(terms[3], new NumberTermImpl(bestY));
