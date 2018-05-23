@@ -55,13 +55,13 @@ public class stop_by_in_depot extends DefaultInternalAction {
             diffDepX /= sumDiffDep;
             diffDepY /= sumDiffDep;
 
-            if ((diffGX - diffDepX) * (diffGX - diffDepX) + (diffGY - diffDepY) * (diffGY - diffDepY) < 0.25f) {
+            if ((diffGX - diffDepX) * (diffGX - diffDepX) + (diffGY - diffDepY) * (diffGY - diffDepY) < 0.15f) {
                 // gold and depot are in the same direction from agent
                 return agentDepotDist < agentGoldDist;
             }
 
             // is it faster to unload gold in depot?
-            return 2.5f * agentDepotDist * currentFatigue < agentGoldDist * currentFatigue + depotGoldDist + nextFatigue;
+            return 4.5f * agentDepotDist * currentFatigue < agentGoldDist * currentFatigue + depotGoldDist + nextFatigue;
 
 
         } catch (Throwable e) {
