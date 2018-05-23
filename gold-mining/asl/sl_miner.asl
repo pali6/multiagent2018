@@ -54,13 +54,7 @@ search_gold_strategy(near_unvisited). // initial strategy
     .print("All golds=",LG,", evaluation=",LD) &
     .length(LD) > 0 &                   // is there a gold to fetch?
     .min(LD,d(D,NewG,_)) &              // get the near
-	pos(AgX,AgY,_) &
-	depot(_,DX,DY) &
-	gold_pos(NewG,GX,GY) &
-	jia.path_length(AgX,AgY,DX,DY,ADD) &
-	jia.path_length(AgX,AgY,GX,GY,AGD) &
-	jia.path_length(DX,DY,GX,GY,DGD) &
-	jia.is_gold_on_the_way(GX,GY,ADD,AGD,DGD) &
+	not stop_by_in_depot(NewG) &
     worthwhile(NewG)
  <- .print("Gold options are ",LD,". Next gold is ",NewG);
     !change_to_fetch(NewG).
@@ -112,6 +106,15 @@ search_gold_strategy(near_unvisited). // initial strategy
      +free;
      .drop_all_desires;
      !!search_gold(S).
+
+stop_by_in_depot(Gold) :-
+	pos(AgX,AgY,_) &
+	depot(_,DX,DY) &
+	gold_pos(Gold,GX,GY) &
+	jia.path_length(AgX,AgY,DX,DY,ADD) &
+	jia.path_length(AgX,AgY,GX,GY,AGD) &
+	jia.path_length(DX,DY,GX,GY,DGD) &
+	jia.stop_by_in_depot(GX,GY,ADD,AGD,DGD).
 
 // get gold position
 gold_pos(gold(X,Y),X,Y) :- true.

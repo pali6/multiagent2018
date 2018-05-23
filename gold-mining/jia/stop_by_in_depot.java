@@ -10,7 +10,7 @@ import jason.asSyntax.NumberTermImpl;
 import jason.asSyntax.Term;
 import jason.environment.grid.Location;
 
-public class is_gold_on_the_way extends DefaultInternalAction {
+public class stop_by_in_depot extends DefaultInternalAction {
     @Override
     public Object execute(TransitionSystem ts, Unifier un, Term[] terms) throws Exception {
         try {
@@ -33,17 +33,37 @@ public class is_gold_on_the_way extends DefaultInternalAction {
             double nextFatigue = 1 + model.getAgFatigue(agentId, golds + 1);
 
             if (golds <= 1) {
-                return true;
-            }
-
-            if (agentGoldDist <= 1) {
-                return true;
-            }
-            if (agentDepotDist <= 1) {
                 return false;
             }
 
-            return agentDepotDist > agentGoldDist;
+            if (agentGoldDist <= 1) {
+                return false;
+            }
+            if (agentDepotDist <= 1) {
+                return true;
+            }
+
+            float diffGX = gX - agX;
+            float diffGY = gY - agY;
+            float sumDiffG = diffGX + diffGY;
+            diffGX /= sumDiffG;
+            diffGY /= sumDiffG;
+
+            float diffDepX = depX - agX;
+            float diffDepY = depY - agY;
+            float sumDiffDep = diffDepX + diffDepY;
+            diffDepX /= sumDiffDep;
+            diffDepY /= sumDiffDep;
+
+            if ((diffGX - diffDepX) * (diffGX - diffDepX) + (diffGY - diffDepY) * (diffGY - diffDepY) < 0.25f) {
+                // gold and depot are in the same direction from agent
+                return agentDepotDist < agentGoldDist;
+            }
+
+            // is it faster to unload gold in depot?
+            return 2.5f * agentDepotDist * currentFatigue < agentGoldDist * currentFatigue + depotGoldDist + nextFatigue;
+
+
         } catch (Throwable e) {
             ts.getLogger().log(Level.SEVERE, "jia. error: " + e, e);
         }
