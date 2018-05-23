@@ -25,7 +25,7 @@ import jia.Search;
  * @author jomi
  *
  */
-public class near_least_visited extends DefaultInternalAction {
+public class sl_near_least_visited extends DefaultInternalAction {
 
     static Random rnd;
 

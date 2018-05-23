@@ -2,7 +2,7 @@
 
 +!search_gold(near_unvisited)
    :  pos(X,Y,_) & free &
-      jia.near_least_visited(X,Y,ToX,ToY)
+      jia.sl_near_least_visited(X,Y,ToX,ToY)
    <- !pos(ToX,ToY);
       !!search_gold(near_unvisited).
 
