@@ -54,6 +54,13 @@ search_gold_strategy(near_unvisited). // initial strategy
     .print("All golds=",LG,", evaluation=",LD) &
     .length(LD) > 0 &                   // is there a gold to fetch?
     .min(LD,d(D,NewG,_)) &              // get the near
+	pos(AgX,AgY,_) &
+	depot(_,DX,DY) &
+	gold_pos(NewG,GX,GY) &
+	jia.path_length(AgX,AgY,DX,DY,ADD) &
+	jia.path_length(AgX,AgY,GX,GY,AGD) &
+	jia.path_length(DX,DY,GX,GY,DGD) &
+	jia.is_gold_on_the_way(GX,GY,ADD,AGD,DGD) &
     worthwhile(NewG)
  <- .print("Gold options are ",LD,". Next gold is ",NewG);
     !change_to_fetch(NewG).
@@ -106,7 +113,9 @@ search_gold_strategy(near_unvisited). // initial strategy
      .drop_all_desires;
      !!search_gold(S).
 
-
+// get gold position
+gold_pos(gold(X,Y),X,Y) :- true.
+	 
 // also calculates the agent distance for a list of golds,
 // but considers other agents committed to the same gold and
 // the agent fatigue
