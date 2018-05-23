@@ -13,6 +13,7 @@ import java.util.Random;
 
 import arch.LocalWorldModel;
 import arch.MinerArch;
+import env.WorldModel;
 
 import busca.Nodo;
 import jia.Search;
@@ -34,7 +35,6 @@ public class near_least_visited extends DefaultInternalAction {
 
     @Override
     public Object execute(TransitionSystem ts, Unifier un, Term[] terms) throws Exception {
-        System.out.println("a");
         try {
             if(rnd == null)
                 rnd = new Random();
@@ -67,8 +67,8 @@ public class near_least_visited extends DefaultInternalAction {
                     }
                 }
                 float bestUtility = -9999999;
-                int bestX = 0;
-                int bestY = 0;
+                int bestX = rnd.nextInt() % model.getWidth();
+                int bestY = rnd.nextInt() % model.getHeight();
                 for (int y = 0; y < model.getHeight(); y++) {
                     for (int x = 0; x < model.getWidth(); x++) {
                         float unNeigh = unvisNeigh[x][y];
@@ -97,6 +97,9 @@ public class near_least_visited extends DefaultInternalAction {
                         
                         float utility = 200 - distance + unNeigh + 1/2 * un2Neigh;
                         utility += rnd.nextFloat() * 4;
+                        if(model.hasObject(WorldModel.GOLD, x, y)) {
+                            utility += 10;
+                        }
                         if(utility > bestUtility) {
                             bestUtility = utility;
                             bestX = x;
@@ -104,10 +107,11 @@ public class near_least_visited extends DefaultInternalAction {
                         }
                     }
                 }
-                /*
                 String log = "";
                 for (int y = 0; y < model.getHeight(); y++) {
                     for (int x = 0; x < model.getWidth(); x++) {
+                        if(!model.inGrid(new Location(x, y)))
+                            continue;
                         float unNeigh = unvisNeigh[x][y];
                         float un2Neigh = unvis2Neigh[x][y];
                         if(x == bestX && y == bestY) {
@@ -145,16 +149,8 @@ public class near_least_visited extends DefaultInternalAction {
                     ts.getLogger().info(log);
                     log = "";
                 }
-                for (int y = 0; y < model.getHeight(); y++) {
-                    for (int x = 0; x < model.getWidth(); x++) {
-                        log += (model.getVisited(new Location(x, y)) > 0)?1:0;
-                    }
-                    ts.getLogger().info(log);
-                    log = "";
-                }
-                */
                 ts.getLogger().info(bestX + " " + bestY + " " + bestUtility);
-
+                
 
                 un.unifies(terms[2], new NumberTermImpl(bestX));
                 un.unifies(terms[3], new NumberTermImpl(bestY));

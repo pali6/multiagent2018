@@ -75,6 +75,7 @@ public class MinerArch extends AgArch {
     /** The perception of the grid size is removed from the percepts list
         and "directly" added as a belief */
     void gsizePerceived(int w, int h) throws RevisionFailedException {
+
         if (view != null) {
             view.dispose();
         }
@@ -202,7 +203,7 @@ public class MinerArch extends AgArch {
     @Override
     public void broadcast(Message m) throws Exception {
         String basename = getAgName().substring(0,getAgName().length()-1);
-        for (int i=1; i <= 6 ; i++) {
+        for (int i=1; i <= teamSize ; i++) {
             String oname = basename+i;
             if (!getAgName().equals(oname)) {
                 Message msg = new Message(m);

@@ -2,7 +2,7 @@
 
 { include("sl_moving.asl") }               // plans for movements in the scenario
 { include("sl_search_unvisited.asl") }     // plans for finding gold
-{ include("sl_search_quadrant.asl") }      // idem
+// { include("sl_search_quadrant.asl") }      // idem
 { include("sl_fetch_gold.asl") }           // plans for fetch gold goal
 { include("sl_goto_depot.asl") }           // plans for go to depot goal
 { include("sl_allocation_protocol.asl") }  // plans for the gold allocation protocol
